@@ -157,7 +157,7 @@ export default function OrderTrackingClient({ id }: { id: string }) {
   const currentStepIndex = STATUS_STEPS.indexOf(order.status);
   const isCancelled = order.status === "CANCELLED";
   const deliveryBoy = (order as any).delivery?.deliveryBoy;
-  const deliveryOtp = order.orderNumber ? order.orderNumber.slice(-4) : "1234";
+  const deliveryOtp = (order as any).delivery?.deliveryOtp || (order.orderNumber ? order.orderNumber.slice(-4) : "1234");
 
   // Parse Shiprocket details
   const isShiprocket = order.deliveryType === "SHIPROCKET";
