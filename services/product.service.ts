@@ -8,7 +8,7 @@ export const productService = {
 
   getById: (id: string) => api.get<ApiResponse<Product>>(`/products/${id}`),
 
-  getFeatured: () => api.get<ApiResponse<Product[]>>("/products/featured"),
+  getFeatured: () => api.get<ApiResponse<any>>("/products/featured"),
 
   getBelow50: () =>
     api.get<ApiResponse<PaginatedResponse<Product>>>("/products", {
@@ -19,15 +19,11 @@ export const productService = {
     api.get<ApiResponse<Product[]>>(`/products/${productId}/related`),
 
   // Vendor product management
-  create: (data: FormData) =>
-    api.post<ApiResponse<Product>>("/products", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  create: (data: any) =>
+    api.post<ApiResponse<Product>>("/products", data),
 
-  update: (id: string, data: FormData) =>
-    api.put<ApiResponse<Product>>(`/products/${id}`, data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  update: (id: string, data: any) =>
+    api.put<ApiResponse<Product>>(`/products/${id}`, data),
 
   delete: (id: string) => api.delete(`/products/${id}`),
 

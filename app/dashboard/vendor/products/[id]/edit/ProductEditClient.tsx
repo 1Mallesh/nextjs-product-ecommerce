@@ -13,18 +13,18 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { adaptProduct } from "@/lib/adapters";
 import toast from "react-hot-toast";
 
 interface ProductForm {
   name: string;
   description: string;
   price: number;
-  mrp: number;
+  comparePrice: number;
   categoryId: string;
   sku: string;
   stock: number;
   weight?: number;
-  deliveryTime?: string;
 }
 
 export default function ProductEditClient({ id }: { id: string }) {
@@ -36,7 +36,7 @@ export default function ProductEditClient({ id }: { id: string }) {
     queryKey: ["product-edit", id],
     queryFn: async () => {
       const { data } = await productService.getById(id);
-      return data.data;
+      return adaptProduct(data.data);
     },
   });
 
@@ -53,24 +53,33 @@ export default function ProductEditClient({ id }: { id: string }) {
       name: product?.name ?? "",
       description: product?.description ?? "",
       price: product?.price ?? 0,
-      mrp: product?.mrp ?? 0,
+      comparePrice: product?.mrp ?? 0,
       categoryId: product?.category?.id ?? "",
       sku: product?.sku ?? "",
       stock: product?.stock ?? 0,
       weight: product?.weight,
-      deliveryTime: product?.deliveryTime,
     },
   });
 
   const onSubmit = async (data: ProductForm) => {
     setSubmitting(true);
     try {
-      const form = new FormData();
-      Object.entries(data).forEach(([k, v]) => {
-        if (v !== undefined && v !== "") form.append(k, String(v));
-      });
-      images.forEach((img) => form.append("images", img));
-      await productService.update(id, form);
+      const payload = {
+        name: data.name,
+        description: data.description,
+        shortDescription: data.description.substring(0, 100),
+        categoryId: data.categoryId,
+        sku: data.sku,
+        price: Number(data.price),
+        comparePrice: Number(data.comparePrice),
+        costPrice: Number(data.comparePrice) * 0.8,
+        stock: Number(data.stock),
+        weight: Number(data.weight || 0),
+        images: product?.images || ["https://placehold.co/600x600/png"],
+        tags: ["updated"],
+      };
+
+      await productService.update(id, payload);
       toast.success("Product updated!");
       router.push("/dashboard/vendor/products");
     } catch {
@@ -126,7 +135,7 @@ export default function ProductEditClient({ id }: { id: string }) {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((cat) => (
+                  {categories?.filter((cat: any) => cat.id && cat.id !== "").map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -145,7 +154,7 @@ export default function ProductEditClient({ id }: { id: string }) {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">MRP (₹) *</label>
-                <Input {...register("mrp", { required: true, valueAsNumber: true })} type="number" />
+                <Input {...register("comparePrice", { required: true, valueAsNumber: true })} type="number" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -161,10 +170,6 @@ export default function ProductEditClient({ id }: { id: string }) {
                 <label className="text-sm font-medium mb-1.5 block">Weight (g)</label>
                 <Input {...register("weight", { valueAsNumber: true })} type="number" />
               </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Delivery Time</label>
-              <Input {...register("deliveryTime")} placeholder="e.g. 3-5 business days" />
             </div>
           </CardContent>
         </Card>

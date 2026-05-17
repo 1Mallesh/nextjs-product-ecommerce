@@ -30,7 +30,7 @@ const POST_VERIFY_REDIRECT: Record<string, string> = {
   ADMIN: "/dashboard/admin",
   VENDOR: "/vendor/onboarding",
   DELIVERY_BOY: "/delivery/onboarding",
-  CUSTOMER: "/dashboard/customer",
+  CUSTOMER: "/",
 };
 
 function resolveInitialRole(become: string | null): RegistrationRole {
@@ -90,7 +90,7 @@ export default function RegisterPageClient() {
       const loginResult = await dispatch(login({ email: registeredEmail, password: registeredPassword }));
       if (login.fulfilled.match(loginResult)) {
         const role = loginResult.payload.user.role as UserRole;
-        router.push(POST_VERIFY_REDIRECT[role] ?? "/dashboard/customer");
+        router.push(POST_VERIFY_REDIRECT[role] ?? "/");
       } else {
         // Fallback: redirect to login page
         toast("Please login with your credentials");

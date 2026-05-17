@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import type { Product } from "@/types";
+import { adaptProduct } from "@/lib/adapters";
 import { motion } from "framer-motion";
 import { productService } from "@/services/product.service";
 import ProductCard from "@/components/product/ProductCard";
@@ -10,11 +12,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Flame } from "lucide-react";
 
 export default function FeaturedProducts() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<Product[]>({
     queryKey: ["featured-products"],
     queryFn: async () => {
       const { data } = await productService.getFeatured();
-      return data.data;
+      // The backend returns paginated format { products: [...], total, ... }
+      // We need to return an array of products, and use adaptProduct to format them correctly
+      const productsArray = data.data?.products || (Array.isArray(data.data) ? data.data : []);
+      return productsArray.map(adaptProduct);
     },
   });
 

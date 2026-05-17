@@ -55,7 +55,7 @@ export default function LoginPageClient() {
     }
     if (role === "ADMIN") return "/dashboard/admin";
     // CUSTOMER — respect redirect param if it's not just "/"
-    return redirect && redirect !== "/" ? redirect : "/dashboard/customer";
+    return redirect && redirect !== "/" ? redirect : "/";
   };
 
   const onPasswordLogin = async (data: LoginFormData) => {

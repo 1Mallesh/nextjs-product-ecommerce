@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Upload, ArrowLeft } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
@@ -18,17 +18,17 @@ interface ProductForm {
   name: string;
   description: string;
   price: number;
-  mrp: number;
+  comparePrice: number;
   categoryId: string;
   sku: string;
   stock: number;
   weight?: number;
-  deliveryTime?: string;
-  variants: Array<{ name: string; value: string; price: number; mrp: number; stock: number; sku: string }>;
+  variants: Array<{ name: string; value: string; price: number; comparePrice: number; stock: number; sku: string }>;
 }
 
 export default function NewProductPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -52,14 +52,23 @@ export default function NewProductPage() {
   const onSubmit = async (data: ProductForm) => {
     setSubmitting(true);
     try {
-      const form = new FormData();
-      Object.entries(data).forEach(([k, v]) => {
-        if (k !== "variants" && v !== undefined && v !== "") form.append(k, String(v));
-      });
-      if (data.variants?.length) form.append("variants", JSON.stringify(data.variants));
-      images.forEach((img) => form.append("images", img));
+      const payload = {
+        name: data.name,
+        description: data.description,
+        shortDescription: data.description.substring(0, 100),
+        categoryId: data.categoryId,
+        sku: data.sku,
+        price: Number(data.price),
+        comparePrice: Number(data.comparePrice),
+        costPrice: Number(data.comparePrice) * 0.8,
+        stock: Number(data.stock),
+        weight: Number(data.weight || 0),
+        images: ["https://placehold.co/600x600/png"], // Converted to URL array temporarily
+        tags: ["new"],
+      };
 
-      await productService.create(form);
+      await productService.create(payload);
+      queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
       toast.success("Product submitted for review! Admin will approve it shortly.");
       router.push("/dashboard/vendor/products");
     } catch {
@@ -100,7 +109,7 @@ export default function NewProductPage() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((cat) => (
+                  {categories?.filter((cat: any) => cat.id && cat.id !== "").map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -120,7 +129,7 @@ export default function NewProductPage() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">MRP (₹) *</label>
-                <Input {...register("mrp", { required: true, valueAsNumber: true })} type="number" placeholder="0.00" />
+                <Input {...register("comparePrice", { required: true, valueAsNumber: true })} type="number" placeholder="0.00" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -136,10 +145,6 @@ export default function NewProductPage() {
                 <label className="text-sm font-medium mb-1.5 block">Weight (g)</label>
                 <Input {...register("weight", { valueAsNumber: true })} type="number" placeholder="500" />
               </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Delivery Time</label>
-              <Input {...register("deliveryTime")} placeholder="e.g. 3-5 business days" />
             </div>
           </CardContent>
         </Card>
@@ -180,7 +185,7 @@ export default function NewProductPage() {
             <div className="flex items-center justify-between">
               <CardTitle>Product Variants (Optional)</CardTitle>
               <Button type="button" variant="outline" size="sm"
-                onClick={() => addVariant({ name: "Size", value: "", price: 0, mrp: 0, stock: 0, sku: "" })}>
+                onClick={() => addVariant({ name: "Size", value: "", price: 0, comparePrice: 0, stock: 0, sku: "" })}>
                 <Plus className="h-4 w-4 mr-1" /> Add Variant
               </Button>
             </div>
@@ -203,7 +208,7 @@ export default function NewProductPage() {
                     <Input {...register(`variants.${i}.name`)} placeholder="Variant name (e.g. Size)" />
                     <Input {...register(`variants.${i}.value`)} placeholder="Value (e.g. XL)" />
                     <Input {...register(`variants.${i}.price`, { valueAsNumber: true })} type="number" placeholder="Price (₹)" />
-                    <Input {...register(`variants.${i}.mrp`, { valueAsNumber: true })} type="number" placeholder="MRP (₹)" />
+                    <Input {...register(`variants.${i}.comparePrice`, { valueAsNumber: true })} type="number" placeholder="MRP (₹)" />
                     <Input {...register(`variants.${i}.stock`, { valueAsNumber: true })} type="number" placeholder="Stock" />
                     <Input {...register(`variants.${i}.sku`)} placeholder="SKU" />
                   </div>

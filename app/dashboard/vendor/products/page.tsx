@@ -33,8 +33,9 @@ export default function VendorProductsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["vendor-products", search],
     queryFn: async () => {
-      const { data } = await productService.getVendorProducts({ search, limit: 20 });
-      return data.data;
+      const response = await productService.getVendorProducts({ search, limit: 20 });
+      // Using response.data.data to get the payload `{ products: [...] }`
+      return response.data.data as any;
     },
   });
 
@@ -74,7 +75,7 @@ export default function VendorProductsPage() {
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
-      ) : !data?.data?.length ? (
+      ) : !data?.products?.length ? (
         <div className="text-center py-16">
           <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-40" />
           <p className="font-medium">No products yet</p>
@@ -94,7 +95,7 @@ export default function VendorProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {data.data.map((product) => (
+              {data.products.map((product: any) => (
                 <tr key={product.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -114,10 +115,10 @@ export default function VendorProductsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge
-                      variant={product.isActive ? "success" : "warning"}
+                      variant={product.approvalStatus === "APPROVED" ? "success" : product.approvalStatus === "REJECTED" ? "destructive" : "warning"}
                       className="text-[10px]"
                     >
-                      {product.isActive ? "Live" : "Pending Approval"}
+                      {product.approvalStatus === "APPROVED" ? "Approved" : product.approvalStatus === "REJECTED" ? "Rejected" : "Pending Approval"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
