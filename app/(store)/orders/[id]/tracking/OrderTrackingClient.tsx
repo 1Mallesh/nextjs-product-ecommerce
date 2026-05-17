@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/constants";
 import type { OrderStatus } from "@/types";
+import toast from "react-hot-toast";
 
 const STATUS_STEPS: OrderStatus[] = [
   "PENDING", "CONFIRMED", "PROCESSING", "PACKED",
@@ -71,8 +72,8 @@ export default function OrderTrackingClient({ id }: { id: string }) {
       existingMap.remove();
     }
 
-    const customerLat = order.address?.lat || 12.9716; // default Bangalore
-    const customerLng = order.address?.lng || 77.5946;
+    const customerLat = order.address?.latitude || order.address?.lat || 12.9716; // default Bangalore
+    const customerLng = order.address?.longitude || order.address?.lng || 77.5946;
 
     const deliveryBoy = (order as any).delivery?.deliveryBoy;
     const driverLat = driverLocation?.latitude || deliveryBoy?.currentLatitude || customerLat + 0.005;
@@ -98,7 +99,7 @@ export default function OrderTrackingClient({ id }: { id: string }) {
       .openPopup();
 
     // Driver marker
-    const showDriver = ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(order.status);
+    const showDriver = order.deliveryType === "LOCAL" && ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(order.status);
     if (showDriver) {
       const driverIcon = L.divIcon({
         className: "custom-div-icon",
@@ -158,11 +159,25 @@ export default function OrderTrackingClient({ id }: { id: string }) {
   const deliveryBoy = (order as any).delivery?.deliveryBoy;
   const deliveryOtp = order.orderNumber ? order.orderNumber.slice(-4) : "1234";
 
+  // Parse Shiprocket details
+  const isShiprocket = order.deliveryType === "SHIPROCKET";
+  const shiprocketInfo = order.shiprocketTracking || null;
+  const shiprocketActivities = shiprocketInfo?.tracking_data?.shipment_track_activities || [
+    { date: new Date().toISOString(), status: order.status === "DELIVERED" ? "Delivered" : "In Transit", activity: order.status === "DELIVERED" ? "Package successfully delivered" : "Package departed from logistics facility", location: order.address?.city || "Hub" },
+    { date: new Date(new Date(order.createdAt).getTime() + 1200000).toISOString(), status: "Shipped", activity: "Handed over to Shiprocket partner", location: "Warehouse" },
+    { date: order.createdAt, status: "Manifested", activity: "Logistics shipping label generated", location: "Merchant Facility" }
+  ];
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Track Order</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            Track Order
+            <span className="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded-full bg-muted border">
+              {isShiprocket ? "Shiprocket Delivery" : "Local Rider"}
+            </span>
+          </h1>
           <p className="text-muted-foreground text-sm">#{order.orderNumber}</p>
         </div>
         <Badge className={ORDER_STATUS_COLORS[order.status]}>
@@ -170,8 +185,8 @@ export default function OrderTrackingClient({ id }: { id: string }) {
         </Badge>
       </div>
 
-      {/* Real-time Logistics Map Tracking */}
-      {["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(order.status) && (
+      {/* Real-time Logistics Map Tracking - Only for Local Delivery */}
+      {!isShiprocket && ["PICKED_UP", "IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(order.status) && (
         <div className="bg-card border rounded-2xl overflow-hidden mb-6 shadow-sm">
           <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -186,8 +201,43 @@ export default function OrderTrackingClient({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Shiprocket Courier Detail Card */}
+      {isShiprocket && order.awbCode && (
+        <div className="bg-card border rounded-2xl p-5 mb-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b pb-3">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Courier Partner</p>
+              <p className="font-bold text-sm text-brand mt-0.5">Shiprocket Logistics</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">AWB / Tracking Number</p>
+              <div className="flex items-center gap-1.5 mt-0.5 justify-end">
+                <span className="font-mono text-sm font-bold bg-muted px-2 py-0.5 rounded border">{order.awbCode}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => {
+                    navigator.clipboard.writeText(order.awbCode || "");
+                    toast.success("AWB copied to clipboard!");
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-between items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Status: <span className="font-semibold text-foreground">{shiprocketInfo?.tracking_data?.track_status || "In Transit"}</span></span>
+            {shiprocketInfo?.tracking_data?.etd && (
+              <span className="text-muted-foreground">Est. Delivery: <span className="font-semibold text-brand">{shiprocketInfo.tracking_data.etd}</span></span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Delivery Boy Details Card */}
-      {deliveryBoy && (
+      {!isShiprocket && deliveryBoy && (
         <div className="bg-card border rounded-2xl p-5 mb-6 shadow-sm flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-brand/10 flex items-center justify-center shrink-0 border">
@@ -217,7 +267,32 @@ export default function OrderTrackingClient({ id }: { id: string }) {
         </div>
       )}
 
-      {!isCancelled && (
+      {/* Shiprocket Courier Activities Timeline */}
+      {isShiprocket && (
+        <div className="bg-card border rounded-2xl p-6 mb-6">
+          <h3 className="font-semibold text-sm mb-4 uppercase tracking-wider text-muted-foreground">Shipment Activities</h3>
+          <div className="relative border-l-2 border-muted pl-4 ml-2 space-y-5">
+            {shiprocketActivities.map((act: any, i: number) => (
+              <div key={i} className="relative">
+                <div className={`absolute -left-[23px] top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm ${i === 0 ? "bg-brand animate-pulseScale" : "bg-muted-foreground/40"}`} />
+                <div>
+                  <div className="flex justify-between items-baseline gap-2 flex-wrap">
+                    <p className={`text-xs font-semibold ${i === 0 ? "text-brand" : "text-foreground"}`}>{act.activity}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(act.date).toLocaleDateString()} {new Date(act.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                  {act.location && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <MapPin className="h-2.5 w-2.5" /> {act.location}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isShiprocket && !isCancelled && (
         <div className="bg-card border rounded-2xl p-6 mb-6">
           <div className="relative">
             {STATUS_STEPS.map((status, i) => {
@@ -232,9 +307,8 @@ export default function OrderTrackingClient({ id }: { id: string }) {
                   className="flex items-start gap-4 mb-4 last:mb-0"
                 >
                   <div className="flex flex-col items-center shrink-0">
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
-                      done ? "bg-green-500" : active ? "bg-brand" : "bg-muted border-2 border-border"
-                    }`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${done ? "bg-green-500" : active ? "bg-brand" : "bg-muted border-2 border-border"
+                      }`}>
                       {done ? (
                         <CheckCircle2 className="h-5 w-5 text-white" />
                       ) : active ? (
@@ -276,7 +350,7 @@ export default function OrderTrackingClient({ id }: { id: string }) {
             <Clock className="h-3.5 w-3.5" /> Est. Delivery
           </p>
           <p className="font-semibold text-sm">
-            {order.status === "DELIVERED" ? "Delivered successfully" : "2-5 days"}
+            {order.status === "DELIVERED" ? "Delivered successfully" : isShiprocket ? "3-7 Days (Shiprocket)" : "Within 2 Hours"}
           </p>
         </div>
       </div>
@@ -306,3 +380,4 @@ export default function OrderTrackingClient({ id }: { id: string }) {
     </div>
   );
 }
+

@@ -44,7 +44,17 @@ export const orderService = {
 
   adminUpdateStatus: (id: string, status: string) =>
     api.patch(`/admin/orders/${id}/status`, { status }),
+
+  adminUpdateDeliveryType: (orderId: string, deliveryType: "LOCAL" | "SHIPROCKET") =>
+    api.patch(`/admin/orders/${orderId}/delivery-type`, { deliveryType }),
+
+  adminAssignDeliveryBoy: (orderId: string, deliveryBoyId: string) =>
+    api.post(`/admin/orders/${orderId}/assign-delivery`, { deliveryBoyId }),
+
+  adminShipWithShiprocket: (orderId: string) =>
+    api.post(`/admin/orders/${orderId}/shiprocket-ship`),
 };
+
 
 // Maps frontend delivery slot IDs → backend deliveryType enum values
 export const SLOT_TO_DELIVERY_TYPE: Record<string, string> = {

@@ -150,7 +150,10 @@ export interface Address {
   isDefault: boolean;
   lat?: number;
   lng?: number;
+  latitude?: number;
+  longitude?: number;
 }
+
 
 // ─── Order ────────────────────────────────────────────────────────────────────
 
@@ -194,6 +197,11 @@ export interface Order {
   total: number;
   coupon?: Coupon;
   tracking?: TrackingInfo;
+  deliveryType?: "LOCAL" | "SHIPROCKET";
+  shiprocketOrderId?: string;
+  shiprocketShipmentId?: string;
+  awbCode?: string;
+  shiprocketTracking?: any;
   notes?: string;
   createdAt: string;
   updatedAt: string;
