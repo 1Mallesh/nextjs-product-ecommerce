@@ -21,7 +21,7 @@ const STATUS_COLORS: Record<VendorStatus, string> = {
 };
 
 export default function AdminVendorsPage() {
-  const [statusFilter, setStatusFilter] = useState("PENDING");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const queryClient = useQueryClient();
   const { socket } = useSocket();
 
@@ -35,14 +35,26 @@ export default function AdminVendorsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-vendors", statusFilter],
     queryFn: async () => {
-      const { data } = await vendorService.adminGetAll({ status: statusFilter });
-      // Backend: { success, data: { vendors: [...], total, page, limit } }
+      // Send both param names so the backend receives whichever it expects
+      const params: Record<string, string | undefined> = {};
+      if (statusFilter !== "ALL") {
+        params.status = statusFilter;
+        params.approvalStatus = statusFilter;
+      }
+      const { data } = await vendorService.adminGetAll(params as any);
+      // Backend may nest the array under vendors / items / results / data, or return it directly
       const payload = data.data as any;
       const vendors =
         payload?.vendors ??
+        payload?.items ??
+        payload?.results ??
         payload?.data ??
         (Array.isArray(payload) ? payload : []);
-      return { vendors, total: payload?.total ?? vendors.length };
+      return {
+        vendors: Array.isArray(vendors) ? vendors : [],
+        total: payload?.total ?? payload?.meta?.total ?? vendors?.length ?? 0,
+        meta: payload?.meta ?? null,
+      };
     },
     staleTime: 0,
   });
@@ -68,7 +80,7 @@ export default function AdminVendorsPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Vendors</h2>
         <div className="flex gap-2">
-          {["PENDING", "APPROVED", "REJECTED", "SUSPENDED"].map((s) => (
+          {["ALL", "PENDING", "APPROVED", "REJECTED", "SUSPENDED"].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 statusFilter === s ? "bg-brand text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -87,7 +99,7 @@ export default function AdminVendorsPage() {
       ) : !data?.vendors?.length ? (
         <div className="text-center py-16 text-muted-foreground">
           <Store className="h-12 w-12 mx-auto mb-4 opacity-40" />
-          <p>No {statusFilter.toLowerCase()} vendors</p>
+          <p>No {statusFilter === "ALL" ? "" : statusFilter.toLowerCase() + " "}vendors found</p>
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
