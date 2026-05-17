@@ -1,11 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
   TrendingUp, ShoppingBag, Users, Store, Package,
   ArrowRight, CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import Link from "next/link";
+import { useSocket } from "@/providers/SocketProvider";
+import toast from "react-hot-toast";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -18,6 +21,41 @@ import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/constants";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboardPage() {
+  const { socket } = useSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const refresh = (event: string) => (data: { name?: string; shopName?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      if (event === "product:pending") {
+        toast(`New product pending approval: ${data?.name ?? "Product"}`, { icon: "📦" });
+      } else if (event === "vendor:new") {
+        toast(`New vendor application: ${data?.shopName ?? "Vendor"}`, { icon: "🏪" });
+      } else if (event === "order:new") {
+        toast("New order received!", { icon: "🛒" });
+      }
+    };
+
+    socket.on("product:pending", refresh("product:pending"));
+    socket.on("vendor:new", refresh("vendor:new"));
+    socket.on("order:new", refresh("order:new"));
+    socket.on("notification", () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+    });
+
+    return () => {
+      socket.off("product:pending");
+      socket.off("vendor:new");
+      socket.off("order:new");
+      socket.off("notification");
+    };
+  }, [socket, queryClient]);
+
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["admin-analytics"],
     queryFn: async () => {

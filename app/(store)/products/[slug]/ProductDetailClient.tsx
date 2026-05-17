@@ -10,6 +10,7 @@ import {
   ChevronRight, Minus, Plus, Check, MapPin, Zap,
 } from "lucide-react";
 import { productService } from "@/services/product.service";
+import api from "@/services/axios";
 import { reviewService } from "@/services/review.service";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addToCart } from "@/store/slices/cartSlice";
@@ -37,6 +38,8 @@ export default function ProductDetailClient({ slug }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [pincode, setPincode] = useState("");
+  const [pincodeResult, setPincodeResult] = useState<{ available: boolean; days?: string } | null>(null);
+  const [checkingPincode, setCheckingPincode] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
@@ -318,8 +321,35 @@ export default function ProductDetailClient({ slug }: Props) {
                 maxLength={6}
                 className="flex-1 h-9 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 bg-background"
               />
-              <Button size="sm" variant="outline" onClick={() => {}}>Check</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={checkingPincode}
+                disabled={pincode.length !== 6}
+                onClick={async () => {
+                  if (pincode.length !== 6) return;
+                  setCheckingPincode(true);
+                  setPincodeResult(null);
+                  try {
+                    const { data } = await api.get(`/delivery/check-pincode?pincode=${pincode}`);
+                    setPincodeResult({ available: true, days: data?.data?.estimatedDays ?? "3-5" });
+                  } catch {
+                    setPincodeResult({ available: false });
+                  } finally {
+                    setCheckingPincode(false);
+                  }
+                }}
+              >
+                Check
+              </Button>
             </div>
+            {pincodeResult && (
+              <p className={`text-xs font-medium ${pincodeResult.available ? "text-green-600" : "text-red-500"}`}>
+                {pincodeResult.available
+                  ? `✓ Delivery available — arrives in ${pincodeResult.days} business days`
+                  : "✗ Delivery not available for this pincode"}
+              </p>
+            )}
           </div>
 
           {/* Trust badges */}

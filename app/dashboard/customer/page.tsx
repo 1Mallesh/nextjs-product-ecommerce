@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useSocket } from "@/providers/SocketProvider";
+import toast from "react-hot-toast";
 import { ShoppingBag, Heart, MapPin, Package, TrendingUp, ArrowRight } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { orderService } from "@/services/order.service";
@@ -14,6 +17,18 @@ import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/constants";
 export default function CustomerDashboardPage() {
   const { user } = useAppSelector((s) => s.auth);
   const wishlistCount = useAppSelector((s) => s.wishlist.productIds.length);
+  const { socket } = useSocket();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (data: { orderNumber?: string; status?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+      toast(`Order #${data?.orderNumber ?? ""} status: ${data?.status ?? "updated"}`, { icon: "📦" });
+    };
+    socket.on("order:status-update", handler);
+    return () => { socket.off("order:status-update", handler); };
+  }, [socket, queryClient]);
 
   const { data: orders } = useQuery({
     queryKey: ["customer-orders"],

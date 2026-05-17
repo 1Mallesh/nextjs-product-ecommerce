@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Product, ProductFilter, PaginatedResponse } from "@/types";
-import { formatPrice } from "@/lib/utils";
 import { ITEMS_PER_PAGE } from "@/constants";
 
 const PRICE_RANGES = [
@@ -31,14 +30,41 @@ const SORT_OPTIONS = [
   { value: "rating", label: "Best Rating" },
 ];
 
+/**
+ * Normalize paginated API response. Backend may return either:
+ *   { data: [], meta: { total, totalPages, ... } }          ← typed shape
+ *   { data: [], total, page, limit }                         ← flat shape
+ * This ensures both produce a consistent PaginatedResponse.
+ */
+function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
+  const r = raw as Record<string, unknown>;
+
+  if (r.meta && typeof r.meta === "object") {
+    return raw as PaginatedResponse<T>;
+  }
+
+  const total = Number(r.total ?? 0);
+  const limit = Number(r.limit ?? ITEMS_PER_PAGE);
+  const page = Number(r.page ?? 1);
+  const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
+
+  return {
+    data: (r.data as T[]) ?? [],
+    meta: {
+      total,
+      limit,
+      page,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+}
+
 export default function ProductsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [filterOpen, setFilterOpen] = useState(false);
-
-  const search = searchParams.get("search") || undefined;
-  const categoryId = searchParams.get("categoryId") || undefined;
-  const sortBy = (searchParams.get("sortBy") as ProductFilter["sortBy"]) || "newest";
   const [page, setPage] = useState(1);
   const [minPrice, setMinPrice] = useState<number | undefined>();
   const [maxPrice, setMaxPrice] = useState<number | undefined>(
@@ -46,6 +72,10 @@ export default function ProductsPageClient() {
   );
   const [selectedRating, setSelectedRating] = useState<number | undefined>();
   const [inStock, setInStock] = useState(false);
+
+  const search = searchParams.get("search") || undefined;
+  const categoryId = searchParams.get("categoryId") || undefined;
+  const sortBy = (searchParams.get("sortBy") as ProductFilter["sortBy"]) || "newest";
 
   const filters: ProductFilter = {
     search, categoryId, sortBy, page, limit: ITEMS_PER_PAGE,
@@ -56,7 +86,7 @@ export default function ProductsPageClient() {
     queryKey: ["products", filters],
     queryFn: async () => {
       const { data } = await productService.getAll(filters);
-      return data.data;
+      return normalizePaginated<Product>(data.data);
     },
     placeholderData: keepPreviousData,
   });
@@ -75,9 +105,20 @@ export default function ProductsPageClient() {
     router.push(`/products?${params.toString()}`);
   };
 
+  const clearFilters = () => {
+    setMinPrice(undefined);
+    setMaxPrice(undefined);
+    setSelectedRating(undefined);
+    setInStock(false);
+    setPage(1);
+    router.push("/products");
+  };
+
   const activeFilters: string[] = [
     ...(search ? [`"${search}"`] : []),
-    ...(minPrice || maxPrice ? [`₹${minPrice || 0}–₹${maxPrice || "∞"}`] : []),
+    ...(minPrice !== undefined || maxPrice !== undefined
+      ? [`₹${minPrice ?? 0}–${maxPrice !== undefined ? `₹${maxPrice}` : "∞"}`]
+      : []),
     ...(selectedRating ? [`${selectedRating}★+`] : []),
     ...(inStock ? ["In Stock"] : []),
   ];
@@ -86,11 +127,11 @@ export default function ProductsPageClient() {
     <div className="space-y-6">
       <div>
         <h4 className="font-semibold mb-3">Price Range</h4>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {PRICE_RANGES.map((range) => (
             <button
               key={range.label}
-              onClick={() => { setMinPrice(range.min); setMaxPrice(range.max); }}
+              onClick={() => { setMinPrice(range.min); setMaxPrice(range.max); setPage(1); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                 minPrice === range.min && maxPrice === range.max
                   ? "bg-brand/10 text-brand font-medium"
@@ -100,8 +141,10 @@ export default function ProductsPageClient() {
               {range.label}
             </button>
           ))}
-          <button onClick={() => { setMinPrice(undefined); setMaxPrice(undefined); }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted">
+          <button
+            onClick={() => { setMinPrice(undefined); setMaxPrice(undefined); }}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted"
+          >
             Clear price filter
           </button>
         </div>
@@ -109,9 +152,10 @@ export default function ProductsPageClient() {
 
       <div>
         <h4 className="font-semibold mb-3">Rating</h4>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {[4, 3, 2, 1].map((r) => (
-            <button key={r}
+            <button
+              key={r}
               onClick={() => setSelectedRating(selectedRating === r ? undefined : r)}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
                 selectedRating === r ? "bg-brand/10 text-brand font-medium" : "hover:bg-muted"
@@ -126,8 +170,12 @@ export default function ProductsPageClient() {
 
       <div>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={inStock} onChange={(e) => setInStock(e.target.checked)}
-            className="rounded border-input" />
+          <input
+            type="checkbox"
+            checked={inStock}
+            onChange={(e) => setInStock(e.target.checked)}
+            className="rounded border-input"
+          />
           <span className="text-sm font-medium">In Stock Only</span>
         </label>
       </div>
@@ -137,7 +185,8 @@ export default function ProductsPageClient() {
           <h4 className="font-semibold mb-3">Category</h4>
           <div className="space-y-1">
             {categories.map((cat) => (
-              <button key={cat.id}
+              <button
+                key={cat.id}
                 onClick={() => router.push(`/products?categoryId=${cat.id}`)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                   categoryId === cat.id ? "bg-brand/10 text-brand font-medium" : "hover:bg-muted"
@@ -152,6 +201,10 @@ export default function ProductsPageClient() {
     </div>
   );
 
+  const total = data?.meta?.total ?? 0;
+  const totalPages = data?.meta?.totalPages ?? 1;
+  const hasNextPage = data?.meta?.hasNextPage ?? false;
+
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
@@ -162,10 +215,11 @@ export default function ProductsPageClient() {
           </h1>
           {data && (
             <p className="text-sm text-muted-foreground">
-              {data.meta.total.toLocaleString("en-IN")} products found
+              {total.toLocaleString("en-IN")} products found
             </p>
           )}
         </div>
+
         <div className="flex items-center gap-2">
           <Select value={sortBy} onValueChange={updateSort}>
             <SelectTrigger className="w-[160px] h-9 text-sm">
@@ -203,20 +257,16 @@ export default function ProductsPageClient() {
         </div>
       </div>
 
-      {/* Active filters */}
+      {/* Active filter chips */}
       {activeFilters.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {activeFilters.map((f) => (
             <Badge key={f} variant="secondary" className="flex items-center gap-1">
               {f}
-              <X className="h-3 w-3 cursor-pointer" onClick={() => {
-                setMinPrice(undefined); setMaxPrice(undefined);
-                setSelectedRating(undefined); setInStock(false);
-                router.push("/products");
-              }} />
+              <X className="h-3 w-3 cursor-pointer" onClick={clearFilters} />
             </Badge>
           ))}
-          <button onClick={() => router.push("/products")} className="text-xs text-brand hover:underline">
+          <button onClick={clearFilters} className="text-xs text-brand hover:underline">
             Clear all
           </button>
         </div>
@@ -228,15 +278,10 @@ export default function ProductsPageClient() {
           <div className="sticky top-24 bg-card border rounded-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4" />
-                Filters
+                <SlidersHorizontal className="h-4 w-4" /> Filters
               </h3>
               {activeFilters.length > 0 && (
-                <button onClick={() => {
-                  setMinPrice(undefined); setMaxPrice(undefined);
-                  setSelectedRating(undefined); setInStock(false);
-                  router.push("/products");
-                }} className="text-xs text-brand hover:underline">
+                <button onClick={clearFilters} className="text-xs text-brand hover:underline">
                   Clear all
                 </button>
               )}
@@ -245,15 +290,12 @@ export default function ProductsPageClient() {
           </div>
         </aside>
 
-        {/* Products */}
+        {/* Product grid */}
         <div className="flex-1">
-          <ProductGrid
-            products={data?.data}
-            loading={isLoading}
-          />
+          <ProductGrid products={data?.data} loading={isLoading} />
 
           {/* Pagination */}
-          {data && data.meta.totalPages > 1 && (
+          {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               <Button
                 variant="outline" size="sm"
@@ -263,11 +305,11 @@ export default function ProductsPageClient() {
                 Previous
               </Button>
               <span className="text-sm text-muted-foreground flex items-center px-4">
-                Page {page} of {data.meta.totalPages}
+                Page {page} of {totalPages}
               </span>
               <Button
                 variant="outline" size="sm"
-                disabled={!data.meta.hasNextPage}
+                disabled={!hasNextPage}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Next

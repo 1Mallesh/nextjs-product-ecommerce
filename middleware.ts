@@ -60,7 +60,9 @@ export const config = {
     "/dashboard/:path*",
     "/checkout/:path*",
     "/orders/:path*",
+    "/vendor/onboarding",
     "/vendor/onboarding/:path*",
+    "/delivery/onboarding",
     "/delivery/onboarding/:path*",
   ],
 };

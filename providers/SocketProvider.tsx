@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { io, Socket } from "socket.io-client";
 import { config } from "@/config";
 import { getToken } from "@/services/axios";
@@ -21,20 +21,21 @@ export function useSocket() {
 }
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
-  const socketRef = useRef<Socket | null>(null);
-  const isConnectedRef = useRef(false);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const { isAuthenticated } = useAppSelector((s) => s.auth);
 
   useEffect(() => {
     if (!isAuthenticated) {
-      socketRef.current?.disconnect();
+      setSocket((prev) => { prev?.disconnect(); return null; });
+      setIsConnected(false);
       return;
     }
 
     const token = getToken();
     if (!token) return;
 
-    const socket = io(config.socketUrl, {
+    const s = io(config.socketUrl, {
       auth: { token },
       transports: ["websocket"],
       reconnection: true,
@@ -42,23 +43,19 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
       reconnectionDelay: 2000,
     });
 
-    socket.on("connect", () => {
-      isConnectedRef.current = true;
-    });
+    s.on("connect", () => setIsConnected(true));
+    s.on("disconnect", () => setIsConnected(false));
 
-    socket.on("disconnect", () => {
-      isConnectedRef.current = false;
-    });
-
-    socketRef.current = socket;
+    setSocket(s);
 
     return () => {
-      socket.disconnect();
+      s.disconnect();
+      setIsConnected(false);
     };
   }, [isAuthenticated]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, isConnected: isConnectedRef.current }}>
+    <SocketContext.Provider value={{ socket, isConnected }}>
       {children}
     </SocketContext.Provider>
   );

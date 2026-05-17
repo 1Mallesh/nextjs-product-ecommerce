@@ -1,36 +1,58 @@
+"use client";
+
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
 import Logo from "./Logo";
 import { Separator } from "@/components/ui/separator";
-
-const FOOTER_LINKS = {
-  company: [
-    { label: "About Us", href: "/about" },
-    { label: "Careers", href: "/careers" },
-    { label: "Press", href: "/press" },
-    { label: "Blog", href: "/blog" },
-  ],
-  customer: [
-    { label: "My Account", href: "/dashboard/customer" },
-    { label: "Track Order", href: "/orders" },
-    { label: "Returns", href: "/returns" },
-    { label: "FAQ", href: "/faq" },
-  ],
-  seller: [
-    { label: "Sell on TOKOMORT", href: "/vendor/onboarding" },
-    { label: "Delivery Partner", href: "/delivery/onboarding" },
-    { label: "Advertise", href: "/advertise" },
-    { label: "Admin", href: "/auth/login?role=admin" },
-  ],
-  legal: [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies" },
-    { label: "Refund Policy", href: "/refunds" },
-  ],
-};
+import { useAppSelector } from "@/store/hooks";
 
 export default function Footer() {
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
+
+  // Smart links: if already logged in as the matching role → go to their dashboard/onboarding
+  const vendorLink = isAuthenticated && user?.role === "VENDOR"
+    ? "/vendor/onboarding"
+    : "/auth/register?become=vendor";
+
+  const deliveryLink = isAuthenticated && user?.role === "DELIVERY_BOY"
+    ? "/delivery/onboarding"
+    : "/auth/register?become=delivery";
+
+  const adminLink = isAuthenticated && user?.role === "ADMIN"
+    ? "/dashboard/admin"
+    : "/auth/login?role=admin";
+
+  const FOOTER_LINKS = {
+    company: [
+      { label: "About Us", href: "/about" },
+      { label: "Careers", href: "/careers" },
+      { label: "Blog", href: "/blog" },
+      { label: "FAQ", href: "/faq" },
+    ],
+    customer: [
+      { label: "My Account", href: isAuthenticated ? `/dashboard/${(user?.role ?? "customer").toLowerCase().replace("_", "")}` : "/auth/login" },
+      { label: "Track Order", href: "/orders" },
+      { label: "Returns & Refunds", href: "/faq" },
+      { label: "Contact Support", href: "/contact" },
+    ],
+    seller: [
+      { label: "Sell on TOKOMORT", href: vendorLink },
+      { label: "Delivery Partner", href: deliveryLink },
+      { label: "Admin Portal", href: adminLink },
+    ],
+    legal: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  };
+
+  const SECTION_LABELS: Record<string, string> = {
+    company: "Company",
+    customer: "Customer",
+    seller: "Partner With Us",
+    legal: "Legal",
+  };
+
   return (
     <footer className="bg-muted/50 border-t mt-16 pb-20 md:pb-0">
       <div className="container mx-auto px-4 py-12">
@@ -57,11 +79,11 @@ export default function Footer() {
           {Object.entries(FOOTER_LINKS).map(([key, links]) => (
             <div key={key}>
               <h4 className="font-semibold text-sm uppercase tracking-wider mb-4 text-foreground">
-                {key === "customer" ? "Customer" : key === "seller" ? "Partner" : key === "legal" ? "Legal" : "Company"}
+                {SECTION_LABELS[key]}
               </h4>
               <ul className="space-y-2">
                 {links.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <Link
                       href={link.href}
                       className="text-sm text-muted-foreground hover:text-brand transition-colors"
@@ -77,20 +99,16 @@ export default function Footer() {
 
         <Separator className="my-8" />
 
-        {/* Contact & Bottom */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col sm:flex-row items-center gap-4 text-sm text-muted-foreground">
             <a href="mailto:support@tokomort.com" className="flex items-center gap-2 hover:text-brand">
-              <Mail className="h-4 w-4" />
-              support@tokomort.com
+              <Mail className="h-4 w-4" /> support@tokomort.com
             </a>
             <a href="tel:+918000000000" className="flex items-center gap-2 hover:text-brand">
-              <Phone className="h-4 w-4" />
-              +91 80000 00000
+              <Phone className="h-4 w-4" /> +91 80000 00000
             </a>
             <span className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Mumbai, India
+              <MapPin className="h-4 w-4" /> Mumbai, India
             </span>
           </div>
           <p className="text-xs text-muted-foreground">

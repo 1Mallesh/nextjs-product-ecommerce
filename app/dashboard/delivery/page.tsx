@@ -18,6 +18,20 @@ export default function DeliveryDashboardPage() {
   const queryClient = useQueryClient();
   const [locationTracking, setLocationTracking] = useState(false);
 
+  useEffect(() => {
+    if (!socket) return;
+    const onAssigned = (data: { orderNumber?: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["delivery-assigned"] });
+      toast.success(`New order assigned: #${data?.orderNumber ?? "Order"}`);
+    };
+    socket.on("delivery:assigned", onAssigned);
+    socket.on("order:assigned", onAssigned);
+    return () => {
+      socket.off("delivery:assigned", onAssigned);
+      socket.off("order:assigned", onAssigned);
+    };
+  }, [socket, queryClient]);
+
   const { data: profile } = useQuery({
     queryKey: ["delivery-profile"],
     queryFn: async () => {

@@ -6,31 +6,39 @@ import { Home, Grid3x3, ShoppingCart, Heart, User } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleCart } from "@/store/slices/uiSlice";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/types";
 
-const NAV_ITEMS = [
-  { icon: Home, label: "Home", href: "/" },
-  { icon: Grid3x3, label: "Categories", href: "/categories" },
-  { icon: ShoppingCart, label: "Cart", href: null, action: "cart" },
-  { icon: Heart, label: "Wishlist", href: "/wishlist" },
-  { icon: User, label: "Account", href: "/auth/login" },
-];
+const DASHBOARD_ROUTES: Record<UserRole, string> = {
+  ADMIN: "/dashboard/admin",
+  VENDOR: "/dashboard/vendor",
+  DELIVERY_BOY: "/dashboard/delivery",
+  CUSTOMER: "/dashboard/customer",
+};
 
 export default function MobileBottomNav() {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const cartItems = useAppSelector((s) => s.cart.items);
-  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth);
 
-  const getHref = (item: (typeof NAV_ITEMS)[0]) => {
-    if (item.href === "/auth/login" && isAuthenticated) return "/dashboard/customer";
-    return item.href;
-  };
+  const accountHref = isAuthenticated && user
+    ? DASHBOARD_ROUTES[user.role as UserRole] ?? "/dashboard/customer"
+    : "/auth/login";
+
+  const NAV_ITEMS = [
+    { icon: Home, label: "Home", href: "/" },
+    { icon: Grid3x3, label: "Categories", href: "/categories" },
+    { icon: ShoppingCart, label: "Cart", href: null, action: "cart" as const },
+    { icon: Heart, label: "Wishlist", href: "/wishlist" },
+    { icon: User, label: "Account", href: accountHref },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 md:hidden bg-background border-t bottom-nav-safe">
       <div className="flex items-center justify-around h-16">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href ? pathname === item.href : false;
+          const isActive = item.href ? pathname === item.href || pathname.startsWith(item.href + "/") : false;
+
           if (item.action === "cart") {
             return (
               <button
@@ -53,11 +61,10 @@ export default function MobileBottomNav() {
             );
           }
 
-          const href = getHref(item);
           return (
             <Link
               key={item.label}
-              href={href!}
+              href={item.href!}
               className="flex flex-col items-center gap-1 p-2"
             >
               <item.icon className={cn("h-5 w-5", isActive ? "text-brand" : "text-muted-foreground")} />

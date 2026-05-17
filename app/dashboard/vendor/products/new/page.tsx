@@ -54,13 +54,13 @@ export default function NewProductPage() {
     try {
       const form = new FormData();
       Object.entries(data).forEach(([k, v]) => {
-        if (k !== "variants") form.append(k, String(v));
+        if (k !== "variants" && v !== undefined && v !== "") form.append(k, String(v));
       });
-      form.append("variants", JSON.stringify(data.variants));
+      if (data.variants?.length) form.append("variants", JSON.stringify(data.variants));
       images.forEach((img) => form.append("images", img));
 
       await productService.create(form);
-      toast.success("Product created successfully!");
+      toast.success("Product submitted for review! Admin will approve it shortly.");
       router.push("/dashboard/vendor/products");
     } catch {
       toast.error("Failed to create product");

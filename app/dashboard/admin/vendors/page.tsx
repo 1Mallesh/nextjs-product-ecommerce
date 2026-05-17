@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSocket } from "@/providers/SocketProvider";
 import { CheckCircle2, XCircle, Eye, Store, Search } from "lucide-react";
 import { vendorService } from "@/services/vendor.service";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,14 @@ const STATUS_COLORS: Record<VendorStatus, string> = {
 export default function AdminVendorsPage() {
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const queryClient = useQueryClient();
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => queryClient.invalidateQueries({ queryKey: ["admin-vendors"] });
+    socket.on("vendor:new", handler);
+    return () => { socket.off("vendor:new", handler); };
+  }, [socket, queryClient]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-vendors", statusFilter],

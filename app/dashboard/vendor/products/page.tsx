@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSocket } from "@/providers/SocketProvider";
 import { Plus, Edit, Trash2, Search, Package } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,18 @@ import toast from "react-hot-toast";
 export default function VendorProductsPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+    socket.on("product:approved", handler);
+    socket.on("product:rejected", handler);
+    return () => {
+      socket.off("product:approved", handler);
+      socket.off("product:rejected", handler);
+    };
+  }, [socket, queryClient]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["vendor-products", search],
@@ -100,8 +113,11 @@ export default function VendorProductsPage() {
                     <span className={product.stock < 10 ? "text-red-600 font-medium" : ""}>{product.stock}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={product.isActive ? "success" : "secondary"} className="text-[10px]">
-                      {product.isActive ? "Active" : "Inactive"}
+                    <Badge
+                      variant={product.isActive ? "success" : "warning"}
+                      className="text-[10px]"
+                    >
+                      {product.isActive ? "Live" : "Pending Approval"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">

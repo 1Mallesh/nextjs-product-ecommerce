@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice, getDeliveryMessage } from "@/lib/utils";
 import { useState } from "react";
+import api from "@/services/axios";
 import toast from "react-hot-toast";
 
 export default function CartPage() {
@@ -21,6 +22,8 @@ export default function CartPage() {
   const { items, subtotal, discount, deliveryFee, total } = useAppSelector((s) => s.cart);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
@@ -158,21 +161,39 @@ export default function CartPage() {
                 placeholder="Enter coupon code"
                 className="text-sm uppercase"
               />
-              <Button size="sm" variant="outline" onClick={() => toast("Coupon applied!", { icon: "🎉" })}>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={couponLoading}
+                disabled={!couponCode.trim()}
+                onClick={async () => {
+                  if (!couponCode.trim()) return;
+                  setCouponLoading(true);
+                  try {
+                    const { data } = await api.post("/coupons/validate", {
+                      code: couponCode,
+                      orderValue: subtotal,
+                    });
+                    const disc = data?.data?.discountAmount ?? 0;
+                    setAppliedCoupon({ code: couponCode, discount: disc });
+                    toast.success(`Coupon applied! You save ₹${disc}`);
+                  } catch (err: unknown) {
+                    const e = err as { response?: { data?: { message?: string } } };
+                    toast.error(e?.response?.data?.message ?? "Invalid or expired coupon");
+                    setAppliedCoupon(null);
+                  } finally {
+                    setCouponLoading(false);
+                  }
+                }}
+              >
                 Apply
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
-              {["WELCOME50", "SAVE20", "FIRST100"].map((code) => (
-                <button
-                  key={code}
-                  onClick={() => setCouponCode(code)}
-                  className="text-xs border border-dashed border-brand/50 text-brand px-2 py-1 rounded hover:bg-brand/5"
-                >
-                  {code}
-                </button>
-              ))}
-            </div>
+            {appliedCoupon && (
+              <p className="text-xs text-green-600 mt-2 font-medium">
+                ✓ {appliedCoupon.code} applied — saving ₹{appliedCoupon.discount}
+              </p>
+            )}
           </div>
 
           {/* Price summary */}

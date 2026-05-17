@@ -13,12 +13,19 @@ export const setTokens = (access: string, refresh: string) => {
   if (!isBrowser) return;
   localStorage.setItem(TOKEN_KEY, access);
   localStorage.setItem(REFRESH_KEY, refresh);
+  // Sync to cookies so Next.js middleware can read them for route protection
+  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  document.cookie = `${TOKEN_KEY}=${access}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  document.cookie = `${REFRESH_KEY}=${refresh}; path=/; max-age=${maxAge}; SameSite=Lax`;
 };
 
 export const clearTokens = () => {
   if (!isBrowser) return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
+  // Clear cookies too
+  document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+  document.cookie = `${REFRESH_KEY}=; path=/; max-age=0`;
 };
 
 const redirectToLogin = () => {

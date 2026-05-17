@@ -8,8 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { login } from "@/store/slices/authSlice";
-import { setCredentials } from "@/store/slices/authSlice";
+import { login, setCredentials } from "@/store/slices/authSlice";
+import { vendorService } from "@/services/vendor.service";
+import { deliveryService } from "@/services/delivery.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginFormData } from "@/schemas/auth.schema";
@@ -35,17 +36,35 @@ export default function LoginPageClient() {
     resolver: zodResolver(loginSchema),
   });
 
+  const resolveDestination = async (role: UserRole): Promise<string> => {
+    if (role === "VENDOR") {
+      try {
+        const { data } = await vendorService.getProfile();
+        if (data.data?.status === "APPROVED") return "/dashboard/vendor";
+        return "/vendor/onboarding";
+      } catch {
+        return "/vendor/onboarding";
+      }
+    }
+    if (role === "DELIVERY_BOY") {
+      try {
+        await deliveryService.getProfile();
+        return "/dashboard/delivery";
+      } catch {
+        return "/delivery/onboarding";
+      }
+    }
+    if (role === "ADMIN") return "/dashboard/admin";
+    // CUSTOMER — respect redirect param if it's not just "/"
+    return redirect && redirect !== "/" ? redirect : "/dashboard/customer";
+  };
+
   const onPasswordLogin = async (data: LoginFormData) => {
     const result = await dispatch(login(data));
     if (login.fulfilled.match(result)) {
       toast.success("Welcome back!");
-      const roleRedirects: Record<UserRole, string> = {
-        ADMIN: "/dashboard/admin",
-        VENDOR: "/dashboard/vendor",
-        DELIVERY_BOY: "/dashboard/delivery",
-        CUSTOMER: redirect === "/" ? "/dashboard/customer" : redirect,
-      };
-      router.push(roleRedirects[result.payload.user.role] || redirect);
+      const dest = await resolveDestination(result.payload.user.role as UserRole);
+      router.push(dest);
     } else {
       toast.error((result.payload as string) || "Invalid credentials");
     }
