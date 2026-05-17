@@ -12,8 +12,10 @@ export default function VendorEarningsPage() {
     queryKey: ["vendor-earnings"],
     queryFn: async () => {
       const { data } = await vendorService.getDashboard();
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
+    refetchInterval: 60_000,
   });
 
   if (isLoading) {

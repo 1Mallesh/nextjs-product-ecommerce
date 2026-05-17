@@ -26,9 +26,11 @@ export default function DeliveryDashboardPage() {
     };
     socket.on("notification", onAssigned);
     socket.on("order-status-update", onAssigned);
+    socket.on("delivery.assigned", onAssigned);
     return () => {
       socket.off("notification", onAssigned);
       socket.off("order-status-update", onAssigned);
+      socket.off("delivery.assigned", onAssigned);
     };
   }, [socket, queryClient]);
 
@@ -44,9 +46,12 @@ export default function DeliveryDashboardPage() {
     queryKey: ["delivery-assigned"],
     queryFn: async () => {
       const { data } = await deliveryService.getAssigned();
-      return data.data;
+      const payload = data.data as any;
+      // Backend may return Order[] directly or { orders: [], meta: {} }
+      return (Array.isArray(payload) ? payload : (payload?.orders ?? payload?.data ?? [])) as Order[];
     },
-    refetchInterval: 30000,
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
   const toggleMutation = useMutation({
@@ -165,7 +170,7 @@ export default function DeliveryDashboardPage() {
         />
         <StatCard
           title="Pending"
-          value={assignedOrders?.length || 0}
+          value={(assignedOrders as any[])?.length ?? 0}
           icon={Package}
           color="blue"
         />
@@ -183,13 +188,13 @@ export default function DeliveryDashboardPage() {
           <h3 className="font-semibold">Assigned Orders</h3>
         </div>
         <div className="divide-y">
-          {!assignedOrders?.length ? (
+          {!(assignedOrders as any[])?.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm">No assigned orders</p>
             </div>
           ) : (
-            assignedOrders.map((order: Order) => (
+            (assignedOrders as Order[]).map((order: Order) => (
               <div key={order.id} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>

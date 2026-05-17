@@ -23,8 +23,11 @@ export default function AddressesPage() {
     queryKey: ["addresses"],
     queryFn: async () => {
       const { data } = await addressService.getAll();
-      return data.data;
+      const payload = data.data as any;
+      const list = payload?.addresses ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
+      return (Array.isArray(list) ? list : []) as Address[];
     },
+    staleTime: 0,
   });
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<AddressFormData>({
@@ -34,7 +37,7 @@ export default function AddressesPage() {
   const saveMutation = useMutation({
     mutationFn: async (data: AddressFormData) => {
       if (editId) return addressService.update(editId, data);
-      return addressService.create({ ...data, isDefault: !addresses?.length });
+      return addressService.create({ ...data, isDefault: !(addresses as Address[])?.length });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["addresses"] });

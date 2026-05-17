@@ -12,8 +12,10 @@ export default function DeliveryEarningsPage() {
     queryKey: ["delivery-profile"],
     queryFn: async () => {
       const { data } = await deliveryService.getProfile();
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
+    refetchInterval: 60_000,
   });
 
   if (isLoading) {

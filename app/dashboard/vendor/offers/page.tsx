@@ -12,14 +12,14 @@ export default function VendorOffersPage() {
     queryKey: ["vendor-offers"],
     queryFn: async () => {
       const { data } = await productService.getVendorProducts({} as never);
-      const raw = data?.data;
-      if (Array.isArray(raw)) return raw as Product[];
-      if (raw && typeof raw === "object" && "data" in raw) return (raw as { data: Product[] }).data;
-      return [] as Product[];
+      const payload = data?.data as any;
+      const items = payload?.products ?? payload?.data ?? (Array.isArray(payload) ? payload : []);
+      return (Array.isArray(items) ? items : []) as Product[];
     },
+    staleTime: 0,
   });
 
-  const products = Array.isArray(data) ? data : [];
+  const products = data ?? [];
   // Products with a discount (mrp > price)
   const onSale = products.filter((p) => p.mrp && p.mrp > p.price);
 

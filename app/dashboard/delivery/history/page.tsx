@@ -14,8 +14,10 @@ export default function DeliveryHistoryPage() {
     queryKey: ["delivery-history"],
     queryFn: async () => {
       const { data } = await deliveryService.getAssigned();
-      return data.data;
+      const payload = data.data as any;
+      return (Array.isArray(payload) ? payload : (payload?.orders ?? payload?.data ?? [])) as Order[];
     },
+    staleTime: 0,
   });
 
   const delivered = (data as Order[] | undefined)?.filter((o) => o.status === "DELIVERED") ?? [];

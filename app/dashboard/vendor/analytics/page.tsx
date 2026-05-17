@@ -1,6 +1,8 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useSocket } from "@/providers/SocketProvider";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
@@ -11,12 +13,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice } from "@/lib/utils";
 
 export default function VendorAnalyticsPage() {
+  const queryClient = useQueryClient();
+  const { socket } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return;
+    const refresh = () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-analytics-full"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-analytics"] });
+    };
+    socket.on("product.approved", refresh);
+    socket.on("order-status-update", refresh);
+    socket.on("notification", refresh);
+    return () => {
+      socket.off("product.approved", refresh);
+      socket.off("order-status-update", refresh);
+      socket.off("notification", refresh);
+    };
+  }, [socket, queryClient]);
+
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["vendor-analytics-full"],
     queryFn: async () => {
       const { data } = await vendorService.getDashboard();
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
   if (isLoading) {
@@ -60,8 +83,8 @@ export default function VendorAnalyticsPage() {
           change={analytics?.ordersGrowth}
           color="brand"
         />
-        <StatCard title="Products" value={analytics?.totalProducts ?? 0} icon={Package} color="blue" />
-        <StatCard title="Products" value={analytics?.totalProducts ?? 0} icon={Star} color="purple" />
+        <StatCard title="Total Products" value={analytics?.totalProducts ?? 0} icon={Package} color="blue" />
+        <StatCard title="Avg Rating" value={analytics?.avgRating ? `${analytics.avgRating.toFixed(1)} ★` : "–"} icon={Star} color="purple" />
       </div>
 
       {/* Revenue chart */}
