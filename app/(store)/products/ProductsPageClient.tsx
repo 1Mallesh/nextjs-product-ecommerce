@@ -32,14 +32,15 @@ const SORT_OPTIONS = [
 ];
 
 /**
- * Normalize paginated API response. Backend may return either:
- *   { data: [], meta: { total, totalPages, ... } }          ← typed shape
- *   { data: [], total, page, limit }                         ← flat shape
- * This ensures both produce a consistent PaginatedResponse.
+ * Normalize paginated API response. Backend returns:
+ *   { products: [], total, page, limit }   ← actual backend shape
+ *   { data: [], meta: { ... } }            ← typed shape (fallback)
+ *   { data: [], total, page, limit }       ← flat shape (fallback)
  */
 function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
   const r = raw as Record<string, unknown>;
 
+  // Already in PaginatedResponse shape
   if (r.meta && typeof r.meta === "object") {
     return raw as PaginatedResponse<T>;
   }
@@ -49,8 +50,16 @@ function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
   const page = Number(r.page ?? 1);
   const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
 
+  // Backend returns items under "products" key; fall back to "data", "items", "results"
+  const items =
+    (r.products as T[] | undefined) ??
+    (r.data as T[] | undefined) ??
+    (r.items as T[] | undefined) ??
+    (r.results as T[] | undefined) ??
+    [];
+
   return {
-    data: (r.data as T[]) ?? [],
+    data: items,
     meta: {
       total,
       limit,
@@ -62,7 +71,11 @@ function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
   };
 }
 
-export default function ProductsPageClient() {
+export default function ProductsPageClient({
+  initialProducts,
+}: {
+  initialProducts?: PaginatedResponse<Product>;
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -89,14 +102,18 @@ export default function ProductsPageClient() {
     if (!socket) return;
     const handler = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["featured-products"] });
     };
     socket.on("product.approved", handler);
-    socket.on("product.rejected", handler);
     return () => {
       socket.off("product.approved", handler);
-      socket.off("product.rejected", handler);
     };
   }, [socket, queryClient]);
+
+  // Use server-prefetched data as initialData only for the default unfiltered view
+  const isDefaultView =
+    !search && !categoryId && sortBy === "newest" && page === 1 &&
+    !minPrice && !maxPrice && !selectedRating && !inStock;
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", filters],
@@ -104,6 +121,7 @@ export default function ProductsPageClient() {
       const { data } = await productService.getAll(filters);
       return normalizePaginated<Product>(data.data);
     },
+    initialData: isDefaultView ? initialProducts : undefined,
     placeholderData: keepPreviousData,
   });
 

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { useSocket } from "@/providers/SocketProvider";
+import { revalidateProductPages } from "@/app/actions/product.actions";
 import toast from "react-hot-toast";
 
 export default function AdminProductsPage() {
@@ -27,31 +28,45 @@ export default function AdminProductsPage() {
     return () => { socket.off("product.pending", handler); };
   }, [socket, queryClient]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-products", statusFilter],
     queryFn: async () => {
-      const { data } = await productService.adminGetAll({ status: statusFilter } as never);
-      return data.data;
+      const params: Record<string, string> =
+        statusFilter !== "all" ? { approvalStatus: statusFilter.toUpperCase() } : {};
+      const { data } = await productService.adminGetAll(params as never);
+      // Backend returns { products: [...], total, page, limit } under data.data
+      return data.data as any;
     },
+    staleTime: 0,
   });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+    queryClient.invalidateQueries({ queryKey: ["featured-products"] });
+  };
 
   const approveMutation = useMutation({
     mutationFn: productService.adminApprove,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-      toast.success("Product approved");
+    onSuccess: async () => {
+      invalidateAll();
+      await revalidateProductPages(); // bust Next.js server-side fetch cache
+      toast.success("Product approved and published on storefront");
     },
+    onError: () => toast.error("Failed to approve product"),
   });
 
   const rejectMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) => productService.adminReject(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      invalidateAll();
       toast.success("Product rejected");
     },
+    onError: () => toast.error("Failed to reject product"),
   });
 
-  const products = data?.data ?? [];
+  const products = data?.products ?? [];
 
   return (
     <div className="space-y-6">
@@ -76,6 +91,11 @@ export default function AdminProductsPage() {
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
         </div>
+      ) : isError ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Package className="h-12 w-12 mx-auto mb-4 opacity-40 text-destructive" />
+          <p className="text-destructive">Failed to load products</p>
+        </div>
       ) : !products.length ? (
         <div className="text-center py-16 text-muted-foreground">
           <Package className="h-12 w-12 mx-auto mb-4 opacity-40" />
@@ -92,7 +112,7 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {products.map((product) => (
+              {products.map((product: any) => (
                 <tr key={product.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -114,8 +134,11 @@ export default function AdminProductsPage() {
                   <td className="px-4 py-3 font-medium">{formatPrice(product.price)}</td>
                   <td className="px-4 py-3">{product.stock}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={product.isActive ? "success" : "secondary"} className="text-[10px]">
-                      {product.isActive ? "Active" : "Inactive"}
+                    <Badge
+                      variant={product.approvalStatus === "APPROVED" ? "success" : product.approvalStatus === "REJECTED" ? "destructive" : "warning"}
+                      className="text-[10px]"
+                    >
+                      {product.approvalStatus === "APPROVED" ? "Approved" : product.approvalStatus === "REJECTED" ? "Rejected" : "Pending Approval"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(product.createdAt)}</td>

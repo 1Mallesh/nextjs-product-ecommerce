@@ -9,15 +9,22 @@ import { formatDate } from "@/lib/utils";
 import type { User } from "@/types";
 
 export default function AdminDeliveryPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-delivery-boys"],
     queryFn: async () => {
       const { data } = await adminService.getUsers({ role: "DELIVERY_BOY" });
-      return data.data;
+      // Backend: { success, data: { users: [...] | data: [...] } }
+      const payload = data.data as any;
+      return (
+        payload?.users ??
+        payload?.data ??
+        (Array.isArray(payload) ? payload : [])
+      ) as User[];
     },
+    staleTime: 0,
   });
 
-  const users: User[] = data?.data ?? [];
+  const users: User[] = data ?? [];
 
   return (
     <div className="space-y-6">
@@ -26,6 +33,11 @@ export default function AdminDeliveryPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Bike className="h-12 w-12 mx-auto mb-4 opacity-40 text-destructive" />
+          <p className="text-destructive">Failed to load delivery partners</p>
         </div>
       ) : !users.length ? (
         <div className="text-center py-16 text-muted-foreground">

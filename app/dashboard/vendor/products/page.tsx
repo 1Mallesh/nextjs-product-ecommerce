@@ -30,13 +30,17 @@ export default function VendorProductsPage() {
     };
   }, [socket, queryClient]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["vendor-products", search],
     queryFn: async () => {
-      const response = await productService.getVendorProducts({ search, limit: 20 });
-      // Using response.data.data to get the payload `{ products: [...] }`
+      const response = await productService.getVendorProducts({
+        search: search || undefined,
+        limit: 20,
+      });
+      // Backend: { success, data: { products: [...], total, page, limit } }
       return response.data.data as any;
     },
+    staleTime: 0,
   });
 
   const deleteMutation = useMutation({
@@ -74,6 +78,12 @@ export default function VendorProductsPage() {
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16">
+          <Package className="h-12 w-12 mx-auto mb-4 text-destructive opacity-40" />
+          <p className="font-medium text-destructive">Failed to load products</p>
+          <p className="text-sm text-muted-foreground mt-1">Check your connection and try again</p>
         </div>
       ) : !data?.products?.length ? (
         <div className="text-center py-16">

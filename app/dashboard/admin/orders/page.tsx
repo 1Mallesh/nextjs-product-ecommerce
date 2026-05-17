@@ -14,13 +14,13 @@ import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/constants";
 import Link from "next/link";
 
 export default function AdminOrdersPage() {
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", status, page],
     queryFn: async () => {
-      const { data } = await orderService.adminGetAll({ status: status || undefined, page, limit: 20 });
+      const { data } = await orderService.adminGetAll({ status: status !== "all" ? status : undefined, page, limit: 20 });
       return data.data;
     },
   });
@@ -34,7 +34,7 @@ export default function AdminOrdersPage() {
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="all">All Status</SelectItem>
             {Object.entries(ORDER_STATUS_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}

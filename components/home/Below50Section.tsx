@@ -13,7 +13,9 @@ export default function Below50Section() {
     queryKey: ["products-below-50"],
     queryFn: async () => {
       const { data } = await productService.getBelow50();
-      return data.data?.data ?? data.data ?? [];
+      // Backend: { success, data: { products: [...], total, page, limit } }
+      const payload = data.data as any;
+      return (payload?.products ?? payload?.data ?? (Array.isArray(payload) ? payload : [])) as import("@/types").Product[];
     },
   });
 

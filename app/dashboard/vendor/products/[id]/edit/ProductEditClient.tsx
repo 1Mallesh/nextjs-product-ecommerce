@@ -128,7 +128,7 @@ export default function ProductEditClient({ id }: { id: string }) {
             <div>
               <label className="text-sm font-medium mb-1.5 block">Category *</label>
               <Select
-                defaultValue={product?.category?.id}
+                defaultValue={product?.category?.id || undefined}
                 onValueChange={(v) => setValue("categoryId", v)}
               >
                 <SelectTrigger>

@@ -32,12 +32,19 @@ export default function AdminVendorsPage() {
     return () => { socket.off("notification", handler); };
   }, [socket, queryClient]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-vendors", statusFilter],
     queryFn: async () => {
       const { data } = await vendorService.adminGetAll({ status: statusFilter });
-      return data.data;
+      // Backend: { success, data: { vendors: [...], total, page, limit } }
+      const payload = data.data as any;
+      const vendors =
+        payload?.vendors ??
+        payload?.data ??
+        (Array.isArray(payload) ? payload : []);
+      return { vendors, total: payload?.total ?? vendors.length };
     },
+    staleTime: 0,
   });
 
   const approveMutation = useMutation({
@@ -72,7 +79,12 @@ export default function AdminVendorsPage() {
 
       {isLoading ? (
         <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
-      ) : !data?.data?.length ? (
+      ) : isError ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Store className="h-12 w-12 mx-auto mb-4 opacity-40 text-destructive" />
+          <p className="text-destructive">Failed to load vendors</p>
+        </div>
+      ) : !data?.vendors?.length ? (
         <div className="text-center py-16 text-muted-foreground">
           <Store className="h-12 w-12 mx-auto mb-4 opacity-40" />
           <p>No {statusFilter.toLowerCase()} vendors</p>
@@ -88,7 +100,7 @@ export default function AdminVendorsPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {data.data.map((vendor) => (
+              {data.vendors.map((vendor: any) => (
                 <tr key={vendor.id} className="hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <p className="font-medium">{vendor.shopName}</p>
@@ -97,7 +109,7 @@ export default function AdminVendorsPage() {
                   <td className="px-4 py-3">{vendor.user?.name}</td>
                   <td className="px-4 py-3 font-mono text-xs">{vendor.gstNumber || "–"}</td>
                   <td className="px-4 py-3">
-                    <Badge className={STATUS_COLORS[vendor.status]} variant="outline">
+                    <Badge className={STATUS_COLORS[vendor.status as VendorStatus] ?? "bg-gray-100 text-gray-800"} variant="outline">
                       {vendor.status}
                     </Badge>
                   </td>

@@ -69,6 +69,7 @@ export default function NewProductPage() {
 
       await productService.create(payload);
       queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       toast.success("Product submitted for review! Admin will approve it shortly.");
       router.push("/dashboard/vendor/products");
     } catch {
