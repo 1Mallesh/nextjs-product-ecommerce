@@ -7,6 +7,7 @@ import { SlidersHorizontal, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
 import { categoryService } from "@/services/category.service";
 import { productService } from "@/services/product.service";
+import { adaptProduct } from "@/lib/adapters";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,13 +33,22 @@ const SORT_OPTIONS = [
 
 function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
   const r = raw as Record<string, unknown>;
-  if (r.meta && typeof r.meta === "object") return raw as PaginatedResponse<T>;
-  const total = Number(r.total ?? 0);
+  // Always extract items first — backend uses "products" key, not "data"
+  const items: T[] =
+    (r.products as T[] | undefined) ??
+    (Array.isArray(r.data) ? (r.data as T[]) : undefined) ??
+    (r.items as T[] | undefined) ??
+    (r.results as T[] | undefined) ??
+    [];
+  if (r.meta && typeof r.meta === "object") {
+    return { data: items, meta: r.meta as PaginatedResponse<T>["meta"] };
+  }
+  const total = Number(r.total ?? items.length);
   const limit = Number(r.limit ?? ITEMS_PER_PAGE);
   const page = Number(r.page ?? 1);
   const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
   return {
-    data: (r.data as T[]) ?? [],
+    data: items,
     meta: { total, limit, page, totalPages, hasNextPage: page < totalPages, hasPrevPage: page > 1 },
   };
 }
@@ -54,17 +64,21 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
     queryKey: ["category", slug],
     queryFn: async () => {
       const { data } = await categoryService.getBySlug(slug);
-      return data.data;
+      // Backend may return the category directly or nested under a key
+      const payload = data.data as any;
+      return (payload?.id ? payload : payload?.category ?? payload) as import("@/types").Category;
     },
+    staleTime: 60_000,
   });
 
   const selectedPrice = PRICE_RANGES[priceIdx];
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
-    queryKey: ["category-products", slug, page, sortBy, priceIdx, ratingFilter],
+    queryKey: ["category-products", slug, category?.id, page, sortBy, priceIdx, ratingFilter],
     queryFn: async () => {
       const { data } = await productService.getAll({
-        categoryId: category?.id,
+        // Use categoryId if resolved; otherwise pass categorySlug so backend can filter
+        ...(category?.id ? { categoryId: category.id } : { categorySlug: slug } as any),
         page,
         limit: ITEMS_PER_PAGE,
         sortBy: sortBy as never,
@@ -72,10 +86,13 @@ export default function CategoryPageClient({ slug }: { slug: string }) {
         maxPrice: selectedPrice.max,
         rating: ratingFilter,
       });
-      return normalizePaginated<Product>(data.data);
+      const normalized = normalizePaginated<Product>(data.data);
+      return { ...normalized, data: normalized.data.map(adaptProduct) };
     },
-    enabled: !!category?.id,
+    // Fire once we have the category ID OR immediately with slug fallback
+    enabled: true,
     placeholderData: keepPreviousData,
+    staleTime: 0,
   });
 
   const total = data?.meta?.total ?? 0;

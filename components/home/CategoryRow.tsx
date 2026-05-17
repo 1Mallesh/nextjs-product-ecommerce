@@ -24,7 +24,8 @@ export default function CategoryRow() {
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await categoryService.getAll();
-      return data.data;
+      const payload = data.data as any;
+      return Array.isArray(payload) ? payload : (payload?.categories ?? payload?.data ?? []) as import("@/types").Category[];
     },
   });
 

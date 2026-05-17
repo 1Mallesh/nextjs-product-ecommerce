@@ -36,7 +36,9 @@ export default async function HomePage() {
       queryKey: ["categories"],
       queryFn: async () => {
         const res = await serverFetch<any>("/categories");
-        return res.data ?? [];
+        // res.data can be Category[] directly or { categories: [] }
+        const payload = res.data;
+        return Array.isArray(payload) ? payload : (payload?.categories ?? payload?.data ?? []);
       },
     }),
 
@@ -45,7 +47,7 @@ export default async function HomePage() {
       queryFn: async () => {
         const res = await serverFetch<any>("/products", { maxPrice: 50, limit: 20 });
         const payload = res.data;
-        return extractItems<any>(payload);
+        return extractItems<Record<string, any>>(payload).map(adaptProduct);
       },
     }),
   ]);

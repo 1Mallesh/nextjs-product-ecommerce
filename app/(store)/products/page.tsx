@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ProductsPageClient from "./ProductsPageClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { serverFetch, extractItems } from "@/lib/server-api";
+import { adaptProduct } from "@/lib/adapters";
 import { ITEMS_PER_PAGE } from "@/constants";
 import type { PaginatedResponse, Product } from "@/types";
 
@@ -33,7 +34,8 @@ export default async function ProductsPage({
       });
 
       const payload = res.data as Record<string, any>;
-      const items: Product[] = extractItems<Product>(payload);
+      const rawItems = extractItems<Record<string, any>>(payload);
+      const items: Product[] = rawItems.map(adaptProduct);
       const total = payload?.total ?? items.length;
       const limit = payload?.limit ?? ITEMS_PER_PAGE;
       const page = payload?.page ?? 1;

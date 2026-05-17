@@ -6,6 +6,7 @@ import { useQuery, keepPreviousData, useQueryClient } from "@tanstack/react-quer
 import { SlidersHorizontal, X } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
+import { adaptProduct } from "@/lib/adapters";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,42 +33,38 @@ const SORT_OPTIONS = [
 ];
 
 /**
- * Normalize paginated API response. Backend returns:
- *   { products: [], total, page, limit }   ← actual backend shape
- *   { data: [], meta: { ... } }            ← typed shape (fallback)
- *   { data: [], total, page, limit }       ← flat shape (fallback)
+ * Normalize any paginated API response into PaginatedResponse<T>.
+ *
+ * Backend can return items under: "products", "data" (array), "items", "results"
+ * Meta can be a nested "meta" object OR flat fields "total"/"page"/"limit".
+ *
+ * IMPORTANT: do NOT early-return on r.meta — the key holding the items
+ * may be "products", not "data", so we always extract items first.
  */
 function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
   const r = raw as Record<string, unknown>;
 
-  // Already in PaginatedResponse shape
-  if (r.meta && typeof r.meta === "object") {
-    return raw as PaginatedResponse<T>;
-  }
-
-  const total = Number(r.total ?? 0);
-  const limit = Number(r.limit ?? ITEMS_PER_PAGE);
-  const page = Number(r.page ?? 1);
-  const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
-
-  // Backend returns items under "products" key; fall back to "data", "items", "results"
-  const items =
+  // Always extract items first, regardless of whether meta is present
+  const items: T[] =
     (r.products as T[] | undefined) ??
-    (r.data as T[] | undefined) ??
+    (Array.isArray(r.data) ? (r.data as T[]) : undefined) ??
     (r.items as T[] | undefined) ??
     (r.results as T[] | undefined) ??
     [];
 
+  // Use backend-provided meta if present, otherwise derive from flat fields
+  if (r.meta && typeof r.meta === "object") {
+    return { data: items, meta: r.meta as PaginatedResponse<T>["meta"] };
+  }
+
+  const total = Number(r.total ?? items.length);
+  const limit = Number(r.limit ?? ITEMS_PER_PAGE);
+  const page = Number(r.page ?? 1);
+  const totalPages = limit > 0 ? Math.ceil(total / limit) : 1;
+
   return {
     data: items,
-    meta: {
-      total,
-      limit,
-      page,
-      totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-    },
+    meta: { total, limit, page, totalPages, hasNextPage: page < totalPages, hasPrevPage: page > 1 },
   };
 }
 
@@ -119,7 +116,8 @@ export default function ProductsPageClient({
     queryKey: ["products", filters],
     queryFn: async () => {
       const { data } = await productService.getAll(filters);
-      return normalizePaginated<Product>(data.data);
+      const normalized = normalizePaginated<Product>(data.data);
+      return { ...normalized, data: normalized.data.map(adaptProduct) };
     },
     initialData: isDefaultView ? initialProducts : undefined,
     placeholderData: keepPreviousData,
@@ -129,7 +127,8 @@ export default function ProductsPageClient({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await categoryService.getAll();
-      return data.data;
+      const payload = data.data as any;
+      return Array.isArray(payload) ? payload : (payload?.categories ?? payload?.data ?? []) as import("@/types").Category[];
     },
   });
 
