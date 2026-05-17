@@ -19,8 +19,9 @@ export default function AdminCategoriesPage() {
     queryKey: ["admin-categories"],
     queryFn: async () => {
       const { data } = await categoryService.getAll();
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
   const createMutation = useMutation({
@@ -43,8 +44,10 @@ export default function AdminCategoriesPage() {
     onError: () => toast.error("Failed to delete category"),
   });
 
-  const rawData = data as unknown as { data?: import("@/types").Category[] };
-  const categories: import("@/types").Category[] = Array.isArray(data) ? data as import("@/types").Category[] : rawData?.data ?? [];
+  const categories: import("@/types").Category[] =
+    (data as any)?.categories ??
+    (Array.isArray(data) ? data : []) ??
+    (data as any)?.data ?? [];
 
   return (
     <div className="space-y-6">

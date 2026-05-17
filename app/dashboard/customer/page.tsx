@@ -34,11 +34,13 @@ export default function CustomerDashboardPage() {
     queryKey: ["customer-orders"],
     queryFn: async () => {
       const { data } = await orderService.getAll({ limit: 5 });
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
-  const totalSpent = orders?.data?.reduce((sum, o) => sum + o.total, 0) || 0;
+  const orderList = orders?.orders ?? orders?.data ?? [];
+  const totalSpent = orderList.reduce((sum: number, o: any) => sum + (o.total || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -52,10 +54,10 @@ export default function CustomerDashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Orders" value={orders?.meta?.total || 0} icon={ShoppingBag} color="brand" />
+        <StatCard title="Total Orders" value={orders?.meta?.total ?? orderList.length} icon={ShoppingBag} color="brand" />
         <StatCard title="Total Spent" value={formatPrice(totalSpent)} icon={TrendingUp} color="green" />
         <StatCard title="Wishlist" value={wishlistCount} icon={Heart} color="purple" />
-        <StatCard title="Active Orders" value={orders?.data?.filter((o) => !["DELIVERED", "CANCELLED"].includes(o.status)).length || 0} icon={Package} color="blue" />
+        <StatCard title="Active Orders" value={orderList.filter((o: any) => !["DELIVERED", "CANCELLED"].includes(o.status)).length} icon={Package} color="blue" />
       </div>
 
       {/* Recent orders */}
@@ -69,7 +71,7 @@ export default function CustomerDashboardPage() {
           </Button>
         </div>
         <div className="divide-y">
-          {!orders?.data?.length ? (
+          {!orderList.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="font-medium">No orders yet</p>
@@ -78,7 +80,7 @@ export default function CustomerDashboardPage() {
               </Button>
             </div>
           ) : (
-            orders.data.map((order) => (
+            orderList.map((order: any) => (
               <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/30 transition-colors">
                 <div>
                   <p className="font-medium text-sm">#{order.orderNumber}</p>

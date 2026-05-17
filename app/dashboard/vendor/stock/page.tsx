@@ -22,11 +22,14 @@ export default function VendorStockPage() {
     queryKey: ["vendor-stock", search],
     queryFn: async () => {
       const { data } = await productService.getVendorProducts({ search } as never);
-      const raw = data?.data;
-      if (Array.isArray(raw)) return raw as Product[];
-      if (raw && typeof raw === "object" && "data" in raw) return (raw as { data: Product[] }).data;
-      return [] as Product[];
+      const payload = data?.data as any;
+      const products =
+        payload?.products ??
+        payload?.data ??
+        (Array.isArray(payload) ? payload : []);
+      return Array.isArray(products) ? (products as Product[]) : [];
     },
+    staleTime: 0,
   });
 
   const updateStockMutation = useMutation({
@@ -43,7 +46,7 @@ export default function VendorStockPage() {
     onError: () => toast.error("Failed to update stock"),
   });
 
-  const products = Array.isArray(data) ? data : [];
+  const products = data ?? [];
   const lowStockProducts = products.filter((p) => (p.stock ?? 0) <= 5);
 
   return (

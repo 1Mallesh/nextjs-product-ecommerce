@@ -26,11 +26,12 @@ export default function CustomerOrdersPage() {
         page,
         limit: 10,
       });
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
-  const orders = data?.data ?? [];
+  const orders = data?.orders ?? data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   return (
