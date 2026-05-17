@@ -10,3 +10,15 @@ deploy.tar.gz
 .claude
 .claude/
 CLAUDE.md
+node_modules
+.next
+.env
+.env.local
+.env.production
+dist
+coverage
+deploy.tar.gz
+.cluade# Claude AI
+.claude
+.claude/
+CLAUDE.md
