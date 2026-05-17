@@ -31,4 +31,7 @@ export const deliveryService = {
 
   adminReject: (id: string, reason?: string) =>
     api.patch(`/admin/delivery-boys/${id}/approve`, { approved: false, reason }),
+
+  adminSuspend: (id: string, reason?: string) =>
+    api.patch(`/admin/delivery-boys/${id}/suspend`, { reason }),
 };

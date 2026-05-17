@@ -23,9 +23,9 @@ async function resolveRoleDestination(role: UserRole, fallback?: string | null):
   if (role === "VENDOR") {
     try {
       await vendorService.getProfile();
-      return "/dashboard/vendor"; // profile exists → go to dashboard (pending banner shown there)
+      return "/dashboard/vendor";
     } catch {
-      return "/vendor/onboarding"; // no profile yet → complete onboarding first
+      return "/vendor/onboarding";
     }
   }
   if (role === "DELIVERY_BOY") {
@@ -37,7 +37,11 @@ async function resolveRoleDestination(role: UserRole, fallback?: string | null):
     }
   }
   if (role === "ADMIN") return "/dashboard/admin";
-  return fallback ?? "/dashboard/customer";
+  // CUSTOMER: stay on the store — use redirect param if it's a store route, else home
+  if (fallback && fallback.startsWith("/") && !fallback.startsWith("/dashboard")) {
+    return fallback;
+  }
+  return "/";
 }
 
 export default function LoginModal() {

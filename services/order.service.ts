@@ -1,11 +1,18 @@
 import api from "./axios";
 import type { ApiResponse, Order, PaginatedResponse } from "@/types";
 
+export interface OrderItem {
+  productId: string;
+  variantId?: string;
+  quantity: number;
+}
+
 export interface CreateOrderPayload {
   addressId: string;
   paymentMethod: "RAZORPAY" | "COD";
+  items: OrderItem[];           // required — backend creates order_items from this
+  deliveryType?: string;        // "STANDARD" | "EXPRESS" | "SAME_DAY" | "NEXT_DAY"
   couponCode?: string;
-  deliverySlot?: string;
   notes?: string;
 }
 
@@ -37,4 +44,12 @@ export const orderService = {
 
   adminUpdateStatus: (id: string, status: string) =>
     api.patch(`/admin/orders/${id}/status`, { status }),
+};
+
+// Maps frontend delivery slot IDs → backend deliveryType enum values
+export const SLOT_TO_DELIVERY_TYPE: Record<string, string> = {
+  express:   "EXPRESS",
+  same_day:  "SAME_DAY",
+  next_day:  "NEXT_DAY",
+  standard:  "STANDARD",
 };

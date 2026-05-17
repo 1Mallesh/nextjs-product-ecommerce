@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import RoleGuard from "@/components/auth/RoleGuard";
 import {
   LayoutDashboard, Package, ShoppingBag, BarChart3,
   Wallet, Bell, Store, Layers, Tag,
@@ -20,8 +21,10 @@ const NAV_ITEMS = [
 
 export default function VendorDashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardLayout navItems={NAV_ITEMS} title="Vendor Dashboard">
-      {children}
-    </DashboardLayout>
+    <RoleGuard allowedRoles={["VENDOR"]}>
+      <DashboardLayout navItems={NAV_ITEMS} title="Vendor Dashboard">
+        {children}
+      </DashboardLayout>
+    </RoleGuard>
   );
 }

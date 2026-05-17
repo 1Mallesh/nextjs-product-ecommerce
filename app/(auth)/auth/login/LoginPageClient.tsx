@@ -40,9 +40,9 @@ export default function LoginPageClient() {
     if (role === "VENDOR") {
       try {
         await vendorService.getProfile();
-        return "/dashboard/vendor"; // profile exists → go to dashboard (pending banner shown there)
+        return "/dashboard/vendor";
       } catch {
-        return "/vendor/onboarding"; // no profile yet → complete onboarding first
+        return "/vendor/onboarding";
       }
     }
     if (role === "DELIVERY_BOY") {
@@ -54,8 +54,11 @@ export default function LoginPageClient() {
       }
     }
     if (role === "ADMIN") return "/dashboard/admin";
-    // CUSTOMER — respect redirect param if it's not just "/"
-    return redirect && redirect !== "/" ? redirect : "/";
+    // CUSTOMER: stay on the store — only use redirect if it's a store route (not a dashboard)
+    if (redirect && redirect !== "/" && !redirect.startsWith("/dashboard")) {
+      return redirect;
+    }
+    return "/";
   };
 
   const onPasswordLogin = async (data: LoginFormData) => {

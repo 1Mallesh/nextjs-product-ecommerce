@@ -41,7 +41,7 @@ export default function DashboardLayout({ children, navItems, title }: Dashboard
   const handleLogout = async () => {
     await dispatch(logoutUser());
     queryClient.clear();
-    router.push("/");
+    router.push("/auth/login");
   };
 
   const Sidebar = () => (
@@ -158,9 +158,12 @@ export default function DashboardLayout({ children, navItems, title }: Dashboard
               <Bell className="h-4 w-4" />
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-brand" />
             </button>
-            <Link href="/" className="text-xs text-muted-foreground hover:text-brand transition-colors hidden sm:block">
-              ← Store
-            </Link>
+            {/* Only show "← Store" for admins who need to browse (vendor/delivery have their own worlds) */}
+            {user?.role === "ADMIN" && (
+              <Link href="/" className="text-xs text-muted-foreground hover:text-brand transition-colors hidden sm:block">
+                ← Store
+              </Link>
+            )}
           </div>
         </header>
 

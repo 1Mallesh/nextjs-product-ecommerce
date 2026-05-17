@@ -139,16 +139,15 @@ export interface WishlistItem {
 
 export interface Address {
   id: string;
-  name: string;
-  mobile: string;
-  line1: string;
-  line2?: string;
+  label: string;          // "Home" | "Work" | custom string — backend field
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
   pincode: string;
-  country: string;
   isDefault: boolean;
-  type: "HOME" | "WORK" | "OTHER";
   lat?: number;
   lng?: number;
 }

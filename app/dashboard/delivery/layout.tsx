@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import RoleGuard from "@/components/auth/RoleGuard";
 import { LayoutDashboard, Package, History, Wallet, MapPin } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -13,8 +14,10 @@ const NAV_ITEMS = [
 
 export default function DeliveryDashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <DashboardLayout navItems={NAV_ITEMS} title="Delivery Dashboard">
-      {children}
-    </DashboardLayout>
+    <RoleGuard allowedRoles={["DELIVERY_BOY"]}>
+      <DashboardLayout navItems={NAV_ITEMS} title="Delivery Dashboard">
+        {children}
+      </DashboardLayout>
+    </RoleGuard>
   );
 }

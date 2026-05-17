@@ -60,10 +60,11 @@ export default function Header() {
       ADMIN: ROUTES.ADMIN_DASHBOARD,
       VENDOR: ROUTES.VENDOR_DASHBOARD,
       DELIVERY_BOY: ROUTES.DELIVERY_DASHBOARD,
-      CUSTOMER: ROUTES.CUSTOMER_DASHBOARD,
     };
-    return map[user.role] || ROUTES.CUSTOMER_DASHBOARD;
+    return map[user.role] ?? null; // CUSTOMER has no dashboard link
   };
+
+  const dashboardLink = getDashboardLink();
 
   return (
     <>
@@ -153,12 +154,7 @@ export default function Header() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href={getDashboardLink()} className="cursor-pointer">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </Link>
-                    </DropdownMenuItem>
+                    {/* CUSTOMER: store-specific links — no dashboard */}
                     {user.role === "CUSTOMER" && (
                       <>
                         <DropdownMenuItem asChild>
@@ -174,6 +170,17 @@ export default function Header() {
                           </Link>
                         </DropdownMenuItem>
                       </>
+                    )}
+                    {/* VENDOR / ADMIN / DELIVERY: show their dashboard link */}
+                    {dashboardLink && (
+                      <DropdownMenuItem asChild>
+                        <Link href={dashboardLink} className="cursor-pointer">
+                          <Settings className="mr-2 h-4 w-4" />
+                          {user.role === "VENDOR" ? "Seller Dashboard" :
+                           user.role === "ADMIN" ? "Admin Panel" :
+                           "Delivery Dashboard"}
+                        </Link>
+                      </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">

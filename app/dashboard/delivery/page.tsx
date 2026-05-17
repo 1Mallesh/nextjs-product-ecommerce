@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Wallet, Star, Truck, MapPin, ToggleLeft, ToggleRight, Navigation } from "lucide-react";
+import { Package, Wallet, Truck, MapPin, ToggleLeft, ToggleRight, Navigation, Clock, XCircle, ShieldCheck } from "lucide-react";
 import { deliveryService } from "@/services/delivery.service";
-import type { Order } from "@/types";
 import { useSocket } from "@/providers/SocketProvider";
 import StatCard from "@/components/dashboard/StatCard";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,9 @@ export default function DeliveryDashboardPage() {
   const { socket } = useSocket();
   const queryClient = useQueryClient();
   const [locationTracking, setLocationTracking] = useState(false);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
+  const [enteredOtp, setEnteredOtp] = useState("");
 
   useEffect(() => {
     if (!socket) return;
@@ -42,16 +44,15 @@ export default function DeliveryDashboardPage() {
     },
   });
 
-  const { data: assignedOrders } = useQuery({
+  const { data: assignedDeliveries } = useQuery({
     queryKey: ["delivery-assigned"],
     queryFn: async () => {
       const { data } = await deliveryService.getAssigned();
       const payload = data.data as any;
-      // Backend may return Order[] directly or { orders: [], meta: {} }
-      return (Array.isArray(payload) ? payload : (payload?.orders ?? payload?.data ?? [])) as Order[];
+      return (Array.isArray(payload) ? payload : (payload?.deliveries ?? [])) as any[];
     },
     staleTime: 0,
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   });
 
   const toggleMutation = useMutation({
@@ -62,7 +63,7 @@ export default function DeliveryDashboardPage() {
     },
   });
 
-  // GPS location tracking
+  // GPS location tracking & emitter
   useEffect(() => {
     if (!locationTracking || !socket) return;
 
@@ -72,12 +73,12 @@ export default function DeliveryDashboardPage() {
         (pos) => {
           deliveryService.updateLocation(pos.coords.latitude, pos.coords.longitude);
           socket.emit("location-update", {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
           });
         },
         () => toast.error("Location access denied"),
-        { enableHighAccuracy: true, maximumAge: 10000 }
+        { enableHighAccuracy: true, maximumAge: 5000 }
       );
     }
     return () => {
@@ -85,15 +86,62 @@ export default function DeliveryDashboardPage() {
     };
   }, [locationTracking, socket]);
 
-  const handleStatusUpdate = async (orderId: string, status: string) => {
+  const handleStatusUpdate = async (deliveryId: string, action: "PICKED_UP" | "DELIVERED") => {
     try {
-      await deliveryService.updateDeliveryStatus(orderId, status);
+      await deliveryService.updateDeliveryStatus(deliveryId, action);
       queryClient.invalidateQueries({ queryKey: ["delivery-assigned"] });
-      toast.success("Status updated");
+      queryClient.invalidateQueries({ queryKey: ["delivery-profile"] });
+      toast.success(`Delivery status updated to ${action}`);
     } catch {
-      toast.error("Failed to update status");
+      toast.error("Failed to update delivery status");
     }
   };
+
+  const handleDeliverClick = (delivery: any) => {
+    setSelectedDelivery(delivery);
+    setEnteredOtp("");
+    setOtpModalOpen(true);
+  };
+
+  const handleVerifyOtp = () => {
+    if (!selectedDelivery?.order) return;
+    const expectedOtp = selectedDelivery.order.orderNumber ? selectedDelivery.order.orderNumber.slice(-4) : "1234";
+
+    if (enteredOtp === expectedOtp) {
+      setOtpModalOpen(false);
+      handleStatusUpdate(selectedDelivery.id, "DELIVERED");
+    } else {
+      toast.error("Invalid Delivery Verification OTP! Try again.");
+    }
+  };
+
+  const approvalStatus = (profile as any)?.approvalStatus ?? (profile as any)?.status;
+
+  if (approvalStatus && approvalStatus !== "APPROVED") {
+    const isPending = approvalStatus === "PENDING" || approvalStatus === "UNDER_REVIEW";
+    const isRejected = approvalStatus === "REJECTED" || approvalStatus === "SUSPENDED";
+
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="max-w-md w-full text-center space-y-4">
+          <div className={`h-20 w-20 rounded-full flex items-center justify-center mx-auto ${
+            isPending ? "bg-yellow-100 dark:bg-yellow-900/30" : "bg-red-100 dark:bg-red-900/30"
+          }`}>
+            {isPending ? <Clock className="h-10 w-10 text-yellow-600" /> : <XCircle className="h-10 w-10 text-destructive" />}
+          </div>
+          <h2 className="text-xl font-bold">
+            {isPending ? "Application Under Review" : "Application Rejected"}
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            {isPending
+              ? "Our team is verifying your documents and KYC details. This usually takes 1–2 business days. You'll receive an email once approved."
+              : `Your application was not approved. Reason: ${(profile as any)?.rejectionReason ?? "Does not meet requirements"}. Please contact support.`
+            }
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -108,9 +156,7 @@ export default function DeliveryDashboardPage() {
             {profile?.isAvailable ? "🟢 You are Online" : "⚫ You are Offline"}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {profile?.isAvailable
-              ? "You are receiving delivery requests"
-              : "Toggle to start accepting deliveries"}
+            {profile?.isAvailable ? "You are active and ready for delivery requests" : "Toggle to start accepting deliveries"}
           </p>
         </div>
         <button
@@ -127,12 +173,12 @@ export default function DeliveryDashboardPage() {
       </div>
 
       {/* GPS tracking */}
-      <div className="bg-card border rounded-xl p-4 flex items-center justify-between">
+      <div className="bg-card border rounded-xl p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <Navigation className={`h-5 w-5 ${locationTracking ? "text-brand animate-pulse" : "text-muted-foreground"}`} />
           <div>
             <p className="text-sm font-medium">GPS Location Tracking</p>
-            <p className="text-xs text-muted-foreground">Share live location with customers</p>
+            <p className="text-xs text-muted-foreground">Share real-time coordinates with buyers</p>
           </div>
         </div>
         <Button
@@ -141,110 +187,141 @@ export default function DeliveryDashboardPage() {
           onClick={() => {
             if (!locationTracking) {
               navigator.geolocation.getCurrentPosition(
-                () => { setLocationTracking(true); toast.success("Location tracking started"); },
-                () => toast.error("Allow location access first")
+                () => { setLocationTracking(true); toast.success("Real-time GPS tracking active"); },
+                () => toast.error("Please grant location permission")
               );
             } else {
               setLocationTracking(false);
-              toast.success("Location tracking stopped");
+              toast.success("Location tracking paused");
             }
           }}
         >
-          {locationTracking ? "Stop Tracking" : "Start Tracking"}
+          {locationTracking ? "Stop Sharing" : "Share GPS"}
         </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
-          title="Today's Earnings"
-          value={formatPrice(profile?.earnings || 0)}
+          title="Total Earnings"
+          value={formatPrice(profile?.totalEarnings || 0)}
           icon={Wallet}
           color="green"
         />
         <StatCard
-          title="Total Deliveries"
+          title="Deliveries Completed"
           value={profile?.totalDeliveries || 0}
           icon={Truck}
           color="brand"
         />
         <StatCard
-          title="Pending"
-          value={(assignedOrders as any[])?.length ?? 0}
+          title="Assigned Orders"
+          value={assignedDeliveries?.filter(d => !d.deliveredAt).length ?? 0}
           icon={Package}
           color="blue"
         />
-        <StatCard
-          title="Rating"
-          value={`${profile?.rating?.toFixed(1) || "–"} ★`}
-          icon={Star}
-          color="purple"
-        />
       </div>
 
-      {/* Assigned orders */}
-      <div className="bg-card border rounded-xl overflow-hidden">
+      {/* Assigned deliveries */}
+      <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
         <div className="p-4 border-b">
-          <h3 className="font-semibold">Assigned Orders</h3>
+          <h3 className="font-semibold">Assigned Shipments</h3>
         </div>
         <div className="divide-y">
-          {!(assignedOrders as any[])?.length ? (
+          {!assignedDeliveries?.length ? (
             <div className="p-8 text-center text-muted-foreground">
               <Package className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p className="text-sm">No assigned orders</p>
+              <p className="text-sm">No assigned shipments currently</p>
             </div>
           ) : (
-            (assignedOrders as Order[]).map((order: Order) => (
-              <div key={order.id} className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">#{order.orderNumber}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
+            assignedDeliveries.map((delivery: any) => {
+              const order = delivery.order;
+              if (!order) return null;
+
+              return (
+                <div key={delivery.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-bold text-sm">#{order.orderNumber}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Assigned {formatDate(delivery.assignedAt || delivery.createdAt)}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-extrabold text-sm">{formatPrice(order.totalAmount)}</span>
+                      <Badge className="text-[10px]" variant="outline">
+                        {ORDER_STATUS_LABELS[order.status]}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">{formatPrice(order.total)}</span>
-                    <Badge variant="info" className="text-[10px]">
-                      {ORDER_STATUS_LABELS[order.status]}
-                    </Badge>
+
+                  {order.address && (
+                    <div className="bg-muted/40 rounded-lg p-2.5 space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delivery Destination</p>
+                      <p className="text-xs font-medium text-foreground">{order.address.fullName} ({order.address.phone})</p>
+                      <p className="text-xs text-muted-foreground flex items-start gap-1">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-brand mt-0.5" />
+                        <span>{order.address.addressLine1}, {order.address.city}, {order.address.pincode}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    {!delivery.pickedUpAt && (
+                      <Button size="sm" variant="brand" className="h-8" onClick={() => handleStatusUpdate(delivery.id, "PICKED_UP")}>
+                        Mark Picked Up
+                      </Button>
+                    )}
+                    {delivery.pickedUpAt && !delivery.deliveredAt && (
+                      <Button size="sm" variant="brand" className="h-8" onClick={() => handleDeliverClick(delivery)}>
+                        Verify & Deliver
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-8" onClick={() => {
+                      if (order.address?.latitude && order.address?.longitude) {
+                        window.open(`https://maps.google.com/?q=${order.address.latitude},${order.address.longitude}`, "_blank");
+                      } else {
+                        window.open(`https://maps.google.com/?q=${order.address.addressLine1}, ${order.address.city}`, "_blank");
+                      }
+                    }}>
+                      Navigate Address
+                    </Button>
                   </div>
                 </div>
-
-                {order.address && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-brand" />
-                    {order.address.line1}, {order.address.city}
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  {order.status === "PICKED_UP" && (
-                    <Button size="sm" variant="brand" onClick={() => handleStatusUpdate(order.id, "IN_TRANSIT")}>
-                      Start Delivery
-                    </Button>
-                  )}
-                  {order.status === "IN_TRANSIT" && (
-                    <Button size="sm" variant="brand" onClick={() => handleStatusUpdate(order.id, "OUT_FOR_DELIVERY")}>
-                      Out for Delivery
-                    </Button>
-                  )}
-                  {order.status === "OUT_FOR_DELIVERY" && (
-                    <Button size="sm" variant="brand" onClick={() => handleStatusUpdate(order.id, "DELIVERED")}>
-                      Mark Delivered
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => {
-                    if (order.address?.lat && order.address?.lng) {
-                      window.open(`https://maps.google.com/?q=${order.address.lat},${order.address.lng}`, "_blank");
-                    }
-                  }}>
-                    Navigate
-                  </Button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Premium Verification OTP Modal */}
+      {otpModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div className="text-center space-y-2">
+              <ShieldCheck className="h-12 w-12 text-brand mx-auto animate-bounce" />
+              <h3 className="text-lg font-bold">Delivery Verification</h3>
+              <p className="text-xs text-muted-foreground">Ask the customer for their 4-digit Delivery OTP shown on their order tracking page.</p>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                maxLength={4}
+                placeholder="Enter 4-Digit OTP"
+                value={enteredOtp}
+                onChange={(e) => setEnteredOtp(e.target.value.replace(/\D/g, ""))}
+                className="w-full text-center tracking-widest text-2xl font-extrabold py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand bg-muted/50"
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setOtpModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="brand" className="flex-1" onClick={handleVerifyOtp} disabled={enteredOtp.length !== 4}>
+                  Verify & Complete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

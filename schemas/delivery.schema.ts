@@ -9,7 +9,9 @@ export const deliveryStep1Schema = z.object({
 
 export const deliveryStep2Schema = z.object({
   aadhaarNumber: z.string().regex(/^\d{12}$/, "Aadhaar must be 12 digits"),
+  panNumber: z.string().regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, "Invalid PAN (e.g. ABCDE1234F)"),
   drivingLicense: z.string().min(5, "Driving license number is required"),
+  address: z.string().min(10, "Enter your full address (min 10 characters)"),
 });
 
 export const deliveryStep3Schema = z.object({
@@ -22,3 +24,4 @@ export const deliveryStep3Schema = z.object({
 export type DeliveryStep1Data = z.infer<typeof deliveryStep1Schema>;
 export type DeliveryStep2Data = z.infer<typeof deliveryStep2Schema>;
 export type DeliveryStep3Data = z.infer<typeof deliveryStep3Schema>;
+export type DeliveryAllData = DeliveryStep1Data & DeliveryStep2Data & DeliveryStep3Data;
