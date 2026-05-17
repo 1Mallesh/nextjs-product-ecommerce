@@ -6,4 +6,7 @@ node_modules
 dist
 coverage
 deploy.tar.gz
-.cluade
+.cluade# Claude AI
+.claude
+.claude/
+CLAUDE.md
