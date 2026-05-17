@@ -1,0 +1,86 @@
+name: Deploy to AWS EC2 (Nginx)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-aws:
+    name: AWS EC2 + Nginx Deploy
+    runs-on: ubuntu-latest
+    environment: aws-production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Create deployment archive
+        run: |
+          tar -czf deploy.tar.gz \
+            .next \
+            public \
+            package.json \
+            package-lock.json \
+            next.config.* \
+            --exclude='.next/cache'
+
+      - name: Copy archive to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USER }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          source: deploy.tar.gz
+          target: /home/${{ secrets.AWS_EC2_USER }}/deployments
+
+      - name: Deploy & restart on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_EC2_HOST }}
+          username: ${{ secrets.AWS_EC2_USER }}
+          key: ${{ secrets.AWS_EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            APP_DIR=/var/www/tokomort
+            DEPLOY_DIR=/home/${{ secrets.AWS_EC2_USER }}/deployments
+
+            # Backup current deployment
+            if [ -d "$APP_DIR" ]; then
+              sudo cp -r $APP_DIR ${APP_DIR}_backup_$(date +%Y%m%d_%H%M%S) || true
+            fi
+
+            # Extract new deployment
+            sudo mkdir -p $APP_DIR
+            sudo tar -xzf $DEPLOY_DIR/deploy.tar.gz -C $APP_DIR
+
+            # Install production dependencies only
+            cd $APP_DIR
+            sudo npm ci --omit=dev
+
+            # Reload PM2 process (keeps app running with zero downtime)
+            if pm2 list | grep -q "tokomort"; then
+              pm2 reload tokomort --update-env
+            else
+              pm2 start npm --name "tokomort" -- start
+              pm2 save
+            fi
+
+            # Reload Nginx
+            sudo nginx -t && sudo systemctl reload nginx
+
+            echo "Deployment complete!"
