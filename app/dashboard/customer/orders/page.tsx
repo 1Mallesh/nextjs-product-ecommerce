@@ -67,7 +67,7 @@ export default function CustomerOrdersPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          {orders.map((order: any) => (
             <div key={order.id} className="bg-card border rounded-xl p-4 hover:border-brand/30 transition-colors">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -84,7 +84,7 @@ export default function CustomerOrdersPage() {
                     {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? "s" : ""} · Ordered {formatDate(order.createdAt)}
                   </p>
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {order.items?.slice(0, 3).map((item) => (
+                    {order.items?.slice(0, 3).map((item: any) => (
                       <span key={item.id} className="text-xs bg-muted px-2 py-0.5 rounded-md line-clamp-1 max-w-[120px]">
                         {item.product?.name ?? "Product"}
                       </span>

@@ -140,7 +140,7 @@ export default function VendorAnalyticsPage() {
             <h3 className="font-semibold">Top Products</h3>
           </div>
           <div className="divide-y">
-            {analytics.topProducts.map((product) => (
+            {analytics.topProducts.map((product: any) => (
               <div key={product.id} className="p-4 flex items-center justify-between">
                 <p className="font-medium text-sm">{product.name}</p>
                 <p className="font-bold text-sm">{formatPrice(product.price)}</p>

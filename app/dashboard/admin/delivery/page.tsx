@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Bike, CheckCircle2, XCircle, Ban, Eye, Search, Clock,
-  FileText, Phone, Mail, MapPin, Star, Package,
+  FileText, Phone, Mail, MapPin, Star, Package, Map
 } from "lucide-react";
 import { deliveryService } from "@/services/delivery.service";
 import { useSocket } from "@/providers/SocketProvider";
@@ -44,6 +44,9 @@ export default function AdminDeliveryPage() {
   const [selectedBoy, setSelectedBoy] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [showLiveMap, setShowLiveMap] = useState(true);
+  const [liveLocations, setLiveLocations] = useState<Record<string, { latitude: number; longitude: number }>>({});
 
   useEffect(() => {
     if (!socket) return;
@@ -53,11 +56,44 @@ export default function AdminDeliveryPage() {
     };
     socket.on("delivery.registered", handler);
     socket.on("delivery.onboarded", handler);
+
+    // Listen to real-time coordinates update from socket
+    socket.on("location-update", (data: { latitude: number; longitude: number; deliveryBoyId: string }) => {
+      setLiveLocations(prev => ({
+        ...prev,
+        [data.deliveryBoyId]: { latitude: data.latitude, longitude: data.longitude }
+      }));
+    });
+
     return () => {
       socket.off("delivery.registered", handler);
       socket.off("delivery.onboarded", handler);
+      socket.off("location-update");
     };
   }, [socket, queryClient]);
+
+  // Load Leaflet map
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById("leaflet-js")) {
+      const script = document.createElement("script");
+      script.id = "leaflet-js";
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.onload = () => setMapLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setMapLoaded(true);
+    }
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-delivery-boys", activeTab],
@@ -119,20 +155,101 @@ export default function AdminDeliveryPage() {
     SUSPENDED: boys.filter((b) => b.approvalStatus === "SUSPENDED").length,
   };
 
+  // Render Leaflet admin live map
+  useEffect(() => {
+    if (!mapLoaded || !showLiveMap || typeof window === "undefined" || !(window as any).L) return;
+
+    const L = (window as any).L;
+    const mapContainer = document.getElementById("admin-live-map");
+    if (!mapContainer) return;
+
+    const existingMap = (mapContainer as any)._leaflet_map;
+    if (existingMap) {
+      existingMap.remove();
+    }
+
+    // Default center to Bangalore
+    const map = L.map("admin-live-map").setView([12.9716, 77.5946], 12);
+    (mapContainer as any)._leaflet_map = map;
+
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const approvedBoys = boys.filter(b => b.approvalStatus === "APPROVED");
+    const markers: any[] = [];
+
+    approvedBoys.forEach(boy => {
+      const lat = liveLocations[boy.id]?.latitude || boy.currentLatitude || 12.9716 + (Math.random() - 0.5) * 0.05;
+      const lng = liveLocations[boy.id]?.longitude || boy.currentLongitude || 77.5946 + (Math.random() - 0.5) * 0.05;
+
+      const markerColor = boy.isAvailable ? "bg-green-500" : "bg-gray-400";
+      const divIcon = L.divIcon({
+        className: "custom-div-icon",
+        html: `<div class="w-8 h-8 rounded-full ${markerColor} flex items-center justify-center text-white border-2 border-white shadow-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg></div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+
+      const m = L.marker([lat, lng], { icon: divIcon }).addTo(map)
+        .bindPopup(`
+          <div class="p-1 space-y-1">
+            <p class="font-bold text-sm">${boy.name}</p>
+            <p class="text-xs text-muted-foreground">${boy.vehicleType} (${boy.vehicleNumber})</p>
+            <p class="text-xs mt-1">Status: <span class="font-semibold ${boy.isAvailable ? "text-green-600" : "text-gray-500"}">${boy.isAvailable ? "Available" : "Offline"}</span></p>
+          </div>
+        `);
+      markers.push([lat, lng]);
+    });
+
+    if (markers.length > 0) {
+      map.fitBounds(L.latLngBounds(markers), { padding: [40, 40] });
+    }
+
+    return () => {
+      if ((mapContainer as any)._leaflet_map) {
+        (mapContainer as any)._leaflet_map.remove();
+        delete (mapContainer as any)._leaflet_map;
+      }
+    };
+  }, [mapLoaded, showLiveMap, boys, liveLocations]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-xl font-bold">Delivery Partners</h2>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, mobile..."
-            className="pl-9 w-64"
-          />
+        <div>
+          <h2 className="text-xl font-bold">Delivery Partners</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage onboarded delivery boys, KYC verify, and track live GPS maps</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5" onClick={() => setShowLiveMap(!showLiveMap)}>
+            <Map className="h-4 w-4 text-brand" /> {showLiveMap ? "Hide Live Map" : "Show Live Map"}
+          </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, mobile..."
+              className="pl-9 w-64 h-9"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Real-time Logistics Fleet Map */}
+      {showLiveMap && (
+        <div className="bg-card border rounded-2xl overflow-hidden shadow-sm">
+          <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Logistics Fleet Monitor</p>
+            </div>
+            <p className="text-xs text-muted-foreground">{boys.filter(b => b.approvalStatus === "APPROVED" && b.isAvailable).length} Active riders online</p>
+          </div>
+          <div id="admin-live-map" className="h-[280px] w-full bg-muted z-10" />
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted p-1 rounded-xl w-fit flex-wrap">
@@ -170,7 +287,7 @@ export default function AdminDeliveryPage() {
           <p>{search ? "No results match your search" : "No delivery partners in this category"}</p>
         </div>
       ) : (
-        <div className="bg-card border rounded-xl overflow-hidden">
+        <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
@@ -282,7 +399,7 @@ export default function AdminDeliveryPage() {
 
       {/* Detail panel */}
       {selectedBoy && !showRejectModal && (
-        <div className="bg-card border rounded-xl p-5 space-y-4">
+        <div className="bg-card border rounded-xl p-5 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-base flex items-center gap-2">
               <FileText className="h-4 w-4" /> KYC Details — {selectedBoy.name}

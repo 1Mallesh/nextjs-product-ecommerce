@@ -98,9 +98,9 @@ export default function OrderSuccessClient({ id }: { id: string }) {
               <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
                 <MapPin className="h-3.5 w-3.5" /> Delivering to
               </p>
-              <p className="font-medium text-sm">{order.address.name}</p>
+              <p className="font-medium text-sm">{order.address.fullName}</p>
               <p className="text-sm text-muted-foreground">
-                {order.address.line1}, {order.address.city}, {order.address.state} – {order.address.pincode}
+                {order.address.addressLine1}, {order.address.city}, {order.address.state} – {order.address.pincode}
               </p>
             </div>
           )}

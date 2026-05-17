@@ -37,7 +37,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
 
     // API spec: connect to /tracking namespace with "Bearer <token>"
     const s = io(`${config.socketUrl}/tracking`, {
-      auth: { token: `Bearer ${token}` },
+      auth: { token }, // gateway strips "Bearer " if needed — send raw
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,

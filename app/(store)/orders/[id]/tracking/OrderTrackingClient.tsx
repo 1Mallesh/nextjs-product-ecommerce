@@ -9,7 +9,7 @@ import { orderService } from "@/services/order.service";
 import { useSocket } from "@/providers/SocketProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatPrice, formatDate, formatRelativeTime } from "@/lib/utils";
+import { formatPrice, formatDate } from "@/lib/utils";
 import { ORDER_STATUS_COLORS, ORDER_STATUS_LABELS } from "@/constants";
 import type { OrderStatus } from "@/types";
 
@@ -71,11 +71,12 @@ export default function OrderTrackingClient({ id }: { id: string }) {
       existingMap.remove();
     }
 
-    const customerLat = order.address?.latitude || 12.9716; // default Bangalore
-    const customerLng = order.address?.longitude || 77.5946;
+    const customerLat = order.address?.lat || 12.9716; // default Bangalore
+    const customerLng = order.address?.lng || 77.5946;
 
-    const driverLat = driverLocation?.latitude || order.delivery?.deliveryBoy?.currentLatitude || customerLat + 0.005;
-    const driverLng = driverLocation?.longitude || order.delivery?.deliveryBoy?.currentLongitude || customerLng + 0.005;
+    const deliveryBoy = (order as any).delivery?.deliveryBoy;
+    const driverLat = driverLocation?.latitude || deliveryBoy?.currentLatitude || customerLat + 0.005;
+    const driverLng = driverLocation?.longitude || deliveryBoy?.currentLongitude || customerLng + 0.005;
 
     const map = L.map("tracking-map").setView([customerLat, customerLng], 14);
     (mapContainer as any)._leaflet_map = map;
@@ -154,7 +155,7 @@ export default function OrderTrackingClient({ id }: { id: string }) {
 
   const currentStepIndex = STATUS_STEPS.indexOf(order.status);
   const isCancelled = order.status === "CANCELLED";
-  const deliveryBoy = order.delivery?.deliveryBoy;
+  const deliveryBoy = (order as any).delivery?.deliveryBoy;
   const deliveryOtp = order.orderNumber ? order.orderNumber.slice(-4) : "1234";
 
   return (
@@ -285,9 +286,9 @@ export default function OrderTrackingClient({ id }: { id: string }) {
           <p className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
             <MapPin className="h-3.5 w-3.5" /> Delivering to
           </p>
-          <p className="font-medium text-sm">{order.address.name}</p>
+          <p className="font-medium text-sm">{order.address.fullName}</p>
           <p className="text-sm text-muted-foreground">
-            {order.address.line1}, {order.address.city}, {order.address.state} – {order.address.pincode}
+            {order.address.addressLine1}, {order.address.city}, {order.address.state} – {order.address.pincode}
           </p>
         </div>
       )}

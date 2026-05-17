@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import PaymentFailedClient from "./PaymentFailedClient";
 
-export default function PaymentFailedPage({ params }: { params: { id: string } }) {
+export default async function PaymentFailedPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return (
     <Suspense>
-      <PaymentFailedClient id={params.id} />
+      <PaymentFailedClient id={id} />
     </Suspense>
   );
 }

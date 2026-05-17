@@ -63,7 +63,7 @@ export default function DeliveryDashboardPage() {
     },
   });
 
-  // GPS location tracking & emitter
+  // GPS location tracking & emitter — emits via socket directly (real-time)
   useEffect(() => {
     if (!locationTracking || !socket) return;
 
@@ -71,20 +71,29 @@ export default function DeliveryDashboardPage() {
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          deliveryService.updateLocation(pos.coords.latitude, pos.coords.longitude);
-          socket.emit("location-update", {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
+          const { latitude, longitude } = pos.coords;
+
+          // Find the active delivery orderId to attach to the GPS broadcast
+          const activeDelivery = assignedDeliveries?.find((d: any) => !d.deliveredAt);
+          const orderId = activeDelivery?.order?.id;
+
+          // Emit via socket directly — gateway rebroadcasts to order:${orderId} room
+          socket.emit("delivery-location", { latitude, longitude, orderId });
+
+          // Also update backend DB location for persistence
+          deliveryService.updateLocation(latitude, longitude).catch(() => {});
         },
-        () => toast.error("Location access denied"),
-        { enableHighAccuracy: true, maximumAge: 5000 }
+        (err) => {
+          console.warn("GPS error:", err.message);
+          toast.error("Location access denied — enable GPS to track");
+        },
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
     return () => {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
-  }, [locationTracking, socket]);
+  }, [locationTracking, socket, assignedDeliveries]);
 
   const handleStatusUpdate = async (deliveryId: string, action: "PICKED_UP" | "DELIVERED") => {
     try {
@@ -204,7 +213,7 @@ export default function DeliveryDashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Total Earnings"
-          value={formatPrice(profile?.totalEarnings || 0)}
+          value={formatPrice(profile?.earnings || 0)}
           icon={Wallet}
           color="green"
         />

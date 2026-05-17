@@ -30,16 +30,15 @@ export function adaptUser(raw: Record<string, any>): User {
 export function adaptAddress(raw: Record<string, any>): Address {
   return {
     id: raw.id,
-    name: raw.fullName ?? raw.name ?? "",          // backend: "fullName"
-    mobile: raw.phone ?? raw.mobile ?? "",         // backend: "phone"
-    line1: raw.addressLine1 ?? raw.line1 ?? "",    // backend: "addressLine1"
-    line2: raw.addressLine2 ?? raw.line2,
+    label: raw.label ?? raw.type ?? "HOME",
+    fullName: raw.fullName ?? raw.name ?? "",
+    phone: raw.phone ?? raw.mobile ?? "",
+    addressLine1: raw.addressLine1 ?? raw.line1 ?? "",
+    addressLine2: raw.addressLine2 ?? raw.line2,
     city: raw.city ?? "",
     state: raw.state ?? "",
     pincode: raw.pincode ?? "",
-    country: raw.country ?? "India",
     isDefault: raw.isDefault ?? false,
-    type: (raw.label ?? raw.type ?? "HOME") as Address["type"],
     lat: raw.latitude ?? raw.lat,
     lng: raw.longitude ?? raw.lng,
   };
