@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ShoppingBag, Store, Truck } from "lucide-react";
-import { motion } from "framer-motion";
+import { Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, ShoppingBag, Store, Truck, CheckCircle2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { register as registerUser } from "@/store/slices/authSlice";
+import { login } from "@/store/slices/authSlice";
+import { authService } from "@/services/auth.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { registerSchema, type RegisterFormData } from "@/schemas/auth.schema";
@@ -24,17 +26,11 @@ const ROLE_OPTIONS: { role: RegistrationRole; label: string; desc: string; icon:
   { role: "DELIVERY_BOY", label: "Deliver", desc: "Earn by delivering orders", icon: <Truck className="h-5 w-5" /> },
 ];
 
-const POST_REGISTER_REDIRECT: Record<UserRole, string> = {
+const POST_VERIFY_REDIRECT: Record<string, string> = {
   ADMIN: "/dashboard/admin",
   VENDOR: "/vendor/onboarding",
   DELIVERY_BOY: "/delivery/onboarding",
   CUSTOMER: "/dashboard/customer",
-};
-
-const POST_REGISTER_TOAST: Record<RegistrationRole, string> = {
-  CUSTOMER: "Welcome to TOKOMORT! Start shopping.",
-  VENDOR: "Account created! Complete your vendor profile to start selling.",
-  DELIVERY_BOY: "Account created! Set up your delivery profile to start earning.",
 };
 
 function resolveInitialRole(become: string | null): RegistrationRole {
@@ -52,21 +48,112 @@ export default function RegisterPageClient() {
   const [selectedRole, setSelectedRole] = useState<RegistrationRole>(
     resolveInitialRole(searchParams.get("become"))
   );
+  // OTP verification step
+  const [otpStep, setOtpStep] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [registeredRole, setRegisteredRole] = useState<string>("CUSTOMER");
+  const [registeredPassword, setRegisteredPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    const result = await dispatch(registerUser({ ...data, role: selectedRole }));
+    const result = await dispatch(registerUser({
+      name: data.name,
+      email: data.email,
+      phone: data.mobile, // schema field is 'mobile', API expects 'phone'
+      password: data.password,
+      role: selectedRole,
+    }));
+
     if (registerUser.fulfilled.match(result)) {
-      const role = result.payload.user.role as UserRole;
-      toast.success(POST_REGISTER_TOAST[role as RegistrationRole] ?? "Welcome to TOKOMORT!");
-      router.push(POST_REGISTER_REDIRECT[role] ?? "/");
+      toast.success("Account created! Check your email for the OTP.");
+      setRegisteredEmail(data.email);
+      setRegisteredPassword(data.password);
+      setRegisteredRole(selectedRole);
+      setOtpStep(true);
     } else {
       toast.error((result.payload as string) || "Registration failed");
     }
   };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) { toast.error("Enter the 6-digit OTP"); return; }
+    setOtpLoading(true);
+    try {
+      await authService.verifyOtp({ email: registeredEmail, otp });
+      toast.success("Email verified! Logging you in...");
+      // Auto-login after OTP verification
+      const loginResult = await dispatch(login({ email: registeredEmail, password: registeredPassword }));
+      if (login.fulfilled.match(loginResult)) {
+        const role = loginResult.payload.user.role as UserRole;
+        router.push(POST_VERIFY_REDIRECT[role] ?? "/dashboard/customer");
+      } else {
+        // Fallback: redirect to login page
+        toast("Please login with your credentials");
+        router.push("/auth/login");
+      }
+    } catch {
+      toast.error("Invalid OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpLoading(true);
+    try {
+      await authService.forgotPassword(registeredEmail);
+      toast.success("OTP resent to your email");
+    } catch {
+      toast.error("Failed to resend OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  if (otpStep) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <div className="h-14 w-14 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="h-7 w-7 text-brand" />
+          </div>
+          <h1 className="text-2xl font-bold">Verify your email</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            We sent a 6-digit OTP to <strong>{registeredEmail}</strong>
+          </p>
+        </div>
+
+        <AnimatePresence>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Enter OTP</label>
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                placeholder="6-digit OTP"
+                maxLength={6}
+                className="text-center text-lg tracking-[0.5em] font-bold"
+              />
+            </div>
+            <Button onClick={handleVerifyOtp} variant="brand" className="w-full" size="lg" loading={otpLoading}>
+              Verify & Continue <ArrowRight className="h-4 w-4" />
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Didn&apos;t receive it?{" "}
+              <button onClick={handleResendOtp} className="text-brand hover:underline font-medium">
+                Resend OTP
+              </button>
+            </p>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

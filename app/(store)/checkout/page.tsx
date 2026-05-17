@@ -116,26 +116,31 @@ export default function CheckoutPage() {
       }
 
       // Razorpay payment — create Razorpay order via payments API
-      const { data: payData } = await paymentService.createOrder(order.id, order.total);
+      const { data: payData } = await paymentService.createOrder(order.id);
       const razorpayOrder = payData.data!;
       await loadRazorpay();
 
       const rzp = new window.Razorpay({
-        key: config.razorpayKeyId,
+        key: razorpayOrder.key || config.razorpayKeyId,
         amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
+        currency: razorpayOrder.currency || "INR",
         name: "TOKOMORT",
         description: `Order #${order.orderNumber}`,
-        order_id: razorpayOrder.id,
+        order_id: razorpayOrder.razorpayOrderId,
         prefill: {
           name: user?.name,
           email: user?.email,
           contact: user?.mobile,
         },
         theme: { color: "#FF6B00" },
-        handler: async (response: RazorpayPaymentResponse) => {
+        handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
-            await paymentService.verify(response);
+            await paymentService.verify({
+              orderId: order.id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
             dispatch(clearCart());
             toast.success("Payment successful! Order placed.");
             router.push(`/orders/${order.id}/success`);

@@ -23,8 +23,8 @@ export default function AdminProductsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       toast(`New product pending approval: ${data?.name ?? "Product"}`, { icon: "📦" });
     };
-    socket.on("product:pending", handler);
-    return () => { socket.off("product:pending", handler); };
+    socket.on("product.pending", handler);
+    return () => { socket.off("product.pending", handler); };
   }, [socket, queryClient]);
 
   const { data, isLoading } = useQuery({

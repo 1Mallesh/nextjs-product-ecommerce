@@ -37,7 +37,7 @@ export interface LoginPayload {
 export interface RegisterPayload {
   name: string;
   email: string;
-  mobile: string;
+  phone: string;
   password: string;
   role?: UserRole;
 }
@@ -291,16 +291,17 @@ export interface Coupon {
 // ─── Payment ─────────────────────────────────────────────────────────────────
 
 export interface RazorpayOrder {
-  id: string;
+  razorpayOrderId: string;
   amount: number;
   currency: string;
-  receipt: string;
+  key: string;
 }
 
 export interface RazorpayPaymentResponse {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
+  orderId: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
 }
 
 // ─── Notification ─────────────────────────────────────────────────────────────

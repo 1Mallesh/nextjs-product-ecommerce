@@ -36,19 +36,11 @@ export default function AdminUsersPage() {
     },
   });
 
-  const blockMutation = useMutation({
-    mutationFn: adminService.blockUser,
+  const toggleBlockMutation = useMutation({
+    mutationFn: adminService.toggleBlockUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("User blocked");
-    },
-  });
-
-  const unblockMutation = useMutation({
-    mutationFn: adminService.unblockUser,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("User unblocked");
+      toast.success("User status updated");
     },
   });
 
@@ -125,8 +117,8 @@ export default function AdminUsersPage() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-red-600 border-red-200 hover:bg-red-50"
-                        onClick={() => blockMutation.mutate(user.id)}
-                        disabled={blockMutation.isPending}
+                        onClick={() => toggleBlockMutation.mutate(user.id)}
+                        disabled={toggleBlockMutation.isPending}
                       >
                         <UserX className="h-3.5 w-3.5 mr-1" /> Block
                       </Button>
@@ -135,8 +127,8 @@ export default function AdminUsersPage() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-green-600 border-green-200 hover:bg-green-50"
-                        onClick={() => unblockMutation.mutate(user.id)}
-                        disabled={unblockMutation.isPending}
+                        onClick={() => toggleBlockMutation.mutate(user.id)}
+                        disabled={toggleBlockMutation.isPending}
                       >
                         <UserCheck className="h-3.5 w-3.5 mr-1" /> Unblock
                       </Button>

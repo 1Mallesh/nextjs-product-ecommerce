@@ -18,7 +18,10 @@ export default function OrdersPage() {
     queryKey: ["orders", status],
     queryFn: async () => {
       const { data } = await orderService.getAll({ status: status || undefined, limit: 20 });
-      return data.data;
+      const raw = data?.data;
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === "object" && "data" in raw) return (raw as { data: unknown[] }).data;
+      return [];
     },
   });
 
@@ -44,7 +47,7 @@ export default function OrdersPage() {
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
         </div>
-      ) : !data?.data?.length ? (
+      ) : !(data as unknown[])?.length ? (
         <div className="text-center py-20">
           <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-40" />
           <p className="text-xl font-semibold">No orders found</p>
@@ -54,7 +57,7 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {data.data.map((order) => (
+          {(data as import("@/types").Order[]).map((order) => (
             <div key={order.id} className="bg-card border rounded-xl overflow-hidden hover:border-brand/30 transition-colors">
               <div className="p-4 border-b bg-muted/20 flex items-center justify-between">
                 <div>

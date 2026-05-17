@@ -2,10 +2,8 @@ import api from "./axios";
 import type { AnalyticsSummary, ApiResponse, PaginatedResponse, Vendor } from "@/types";
 
 export const vendorService = {
-  onboard: (data: FormData) =>
-    api.post<ApiResponse<Vendor>>("/vendor/onboard", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  onboard: (data: FormData | Record<string, unknown>) =>
+    api.post<ApiResponse<Vendor>>("/vendor/onboard", data),
 
   getProfile: () => api.get<ApiResponse<Vendor>>("/vendor/profile"),
 
@@ -16,12 +14,13 @@ export const vendorService = {
 
   getDashboard: () => api.get<ApiResponse<AnalyticsSummary>>("/vendor/dashboard"),
 
-  // Admin
+  // Admin — single endpoint with { approved, reason }
   adminGetAll: (params?: { page?: number; status?: string }) =>
     api.get<ApiResponse<PaginatedResponse<Vendor>>>("/admin/vendors", { params }),
 
-  adminApprove: (id: string) => api.patch(`/admin/vendors/${id}/approve`),
+  adminApprove: (id: string, reason?: string) =>
+    api.patch(`/admin/vendors/${id}/approve`, { approved: true, reason }),
+
   adminReject: (id: string, reason: string) =>
-    api.patch(`/admin/vendors/${id}/reject`, { reason }),
-  adminSuspend: (id: string) => api.patch(`/admin/vendors/${id}/suspend`),
+    api.patch(`/admin/vendors/${id}/approve`, { approved: false, reason }),
 };

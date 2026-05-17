@@ -32,26 +32,20 @@ export default function AdminDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
       queryClient.invalidateQueries({ queryKey: ["admin-vendors"] });
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      if (event === "product:pending") {
+      if (event === "product.pending") {
         toast(`New product pending approval: ${data?.name ?? "Product"}`, { icon: "📦" });
-      } else if (event === "vendor:new") {
-        toast(`New vendor application: ${data?.shopName ?? "Vendor"}`, { icon: "🏪" });
-      } else if (event === "order:new") {
-        toast("New order received!", { icon: "🛒" });
+      } else if (event === "notification") {
+        toast(`${data?.shopName ?? data?.name ?? "New activity"}`, { icon: "🔔" });
       }
     };
 
-    socket.on("product:pending", refresh("product:pending"));
-    socket.on("vendor:new", refresh("vendor:new"));
-    socket.on("order:new", refresh("order:new"));
-    socket.on("notification", () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
-    });
+    socket.on("product.pending", refresh("product.pending"));
+    socket.on("order-status-update", refresh("order-status-update"));
+    socket.on("notification", refresh("notification"));
 
     return () => {
-      socket.off("product:pending");
-      socket.off("vendor:new");
-      socket.off("order:new");
+      socket.off("product.pending");
+      socket.off("order-status-update");
       socket.off("notification");
     };
   }, [socket, queryClient]);

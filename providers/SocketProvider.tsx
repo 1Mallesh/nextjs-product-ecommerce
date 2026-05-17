@@ -35,15 +35,20 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     const token = getToken();
     if (!token) return;
 
-    const s = io(config.socketUrl, {
-      auth: { token },
+    // API spec: connect to /tracking namespace with "Bearer <token>"
+    const s = io(`${config.socketUrl}/tracking`, {
+      auth: { token: `Bearer ${token}` },
       transports: ["websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
     });
 
-    s.on("connect", () => setIsConnected(true));
+    s.on("connect", () => {
+      setIsConnected(true);
+      // Join personal notification room after connect
+      s.emit("join-user-room");
+    });
     s.on("disconnect", () => setIsConnected(false));
 
     setSocket(s);

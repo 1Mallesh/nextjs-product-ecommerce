@@ -22,11 +22,11 @@ export default function VendorProductsPage() {
   useEffect(() => {
     if (!socket) return;
     const handler = () => queryClient.invalidateQueries({ queryKey: ["vendor-products"] });
-    socket.on("product:approved", handler);
-    socket.on("product:rejected", handler);
+    socket.on("product.approved", handler);
+    socket.on("product.rejected", handler);
     return () => {
-      socket.off("product:approved", handler);
-      socket.off("product:rejected", handler);
+      socket.off("product.approved", handler);
+      socket.off("product.rejected", handler);
     };
   }, [socket, queryClient]);
 

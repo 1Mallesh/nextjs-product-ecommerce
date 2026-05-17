@@ -81,11 +81,11 @@ export default function VendorDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["vendor-profile"] });
       toast.success("Your vendor account has been approved! You can now sell.");
     };
-    socket.on("product:approved", onProductApproved);
-    socket.on("vendor:approved", onVendorApproved);
+    socket.on("product.approved", onProductApproved);
+    socket.on("notification", onVendorApproved);
     return () => {
-      socket.off("product:approved", onProductApproved);
-      socket.off("vendor:approved", onVendorApproved);
+      socket.off("product.approved", onProductApproved);
+      socket.off("notification", onVendorApproved);
     };
   }, [socket, queryClient]);
 

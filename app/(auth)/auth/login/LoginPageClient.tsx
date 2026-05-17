@@ -39,11 +39,10 @@ export default function LoginPageClient() {
   const resolveDestination = async (role: UserRole): Promise<string> => {
     if (role === "VENDOR") {
       try {
-        const { data } = await vendorService.getProfile();
-        if (data.data?.status === "APPROVED") return "/dashboard/vendor";
-        return "/vendor/onboarding";
+        await vendorService.getProfile();
+        return "/dashboard/vendor"; // profile exists → go to dashboard (pending banner shown there)
       } catch {
-        return "/vendor/onboarding";
+        return "/vendor/onboarding"; // no profile yet → complete onboarding first
       }
     }
     if (role === "DELIVERY_BOY") {

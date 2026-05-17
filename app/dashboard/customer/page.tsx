@@ -26,8 +26,8 @@ export default function CustomerDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
       toast(`Order #${data?.orderNumber ?? ""} status: ${data?.status ?? "updated"}`, { icon: "📦" });
     };
-    socket.on("order:status-update", handler);
-    return () => { socket.off("order:status-update", handler); };
+    socket.on("order-status-update", handler);
+    return () => { socket.off("order-status-update", handler); };
   }, [socket, queryClient]);
 
   const { data: orders } = useQuery({

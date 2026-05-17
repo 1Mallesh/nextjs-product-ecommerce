@@ -22,10 +22,10 @@ import type { UserRole } from "@/types";
 async function resolveRoleDestination(role: UserRole, fallback?: string | null): Promise<string> {
   if (role === "VENDOR") {
     try {
-      const { data } = await vendorService.getProfile();
-      return data.data?.status === "APPROVED" ? "/dashboard/vendor" : "/vendor/onboarding";
+      await vendorService.getProfile();
+      return "/dashboard/vendor"; // profile exists → go to dashboard (pending banner shown there)
     } catch {
-      return "/vendor/onboarding";
+      return "/vendor/onboarding"; // no profile yet → complete onboarding first
     }
   }
   if (role === "DELIVERY_BOY") {

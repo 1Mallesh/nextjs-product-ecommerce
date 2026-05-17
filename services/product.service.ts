@@ -18,7 +18,7 @@ export const productService = {
   getRelated: (productId: string) =>
     api.get<ApiResponse<Product[]>>(`/products/${productId}/related`),
 
-  // Vendor product management (correct API paths)
+  // Vendor product management
   create: (data: FormData) =>
     api.post<ApiResponse<Product>>("/products", data, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -33,21 +33,22 @@ export const productService = {
 
   addVariant: (productId: string, data: {
     name: string;
-    sku: string;
+    value: string;
     price: number;
     stock: number;
-    attributes?: Record<string, string>;
+    sku: string;
   }) => api.post(`/products/${productId}/variants`, data),
 
   getVendorProducts: (params?: ProductFilter) =>
     api.get<ApiResponse<PaginatedResponse<Product>>>("/products/vendor/my-products", { params }),
 
-  // Admin
+  // Admin — single approve endpoint with { approved: true/false, reason }
   adminGetAll: (params?: ProductFilter) =>
     api.get<ApiResponse<PaginatedResponse<Product>>>("/admin/products", { params }),
 
-  adminApprove: (id: string) => api.patch(`/admin/products/${id}/approve`),
+  adminApprove: (id: string) =>
+    api.patch(`/admin/products/${id}/approve`, { approved: true }),
 
   adminReject: (id: string, reason: string) =>
-    api.patch(`/admin/products/${id}/reject`, { reason }),
+    api.patch(`/admin/products/${id}/approve`, { approved: false, reason }),
 };

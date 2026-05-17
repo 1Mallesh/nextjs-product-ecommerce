@@ -28,8 +28,8 @@ export default function AdminVendorsPage() {
   useEffect(() => {
     if (!socket) return;
     const handler = () => queryClient.invalidateQueries({ queryKey: ["admin-vendors"] });
-    socket.on("vendor:new", handler);
-    return () => { socket.off("vendor:new", handler); };
+    socket.on("notification", handler);
+    return () => { socket.off("notification", handler); };
   }, [socket, queryClient]);
 
   const { data, isLoading } = useQuery({
@@ -41,7 +41,7 @@ export default function AdminVendorsPage() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: vendorService.adminApprove,
+    mutationFn: (id: string) => vendorService.adminApprove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-vendors"] });
       toast.success("Vendor approved");

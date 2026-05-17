@@ -15,6 +15,7 @@ export default function CustomerNotificationsPage() {
     queryKey: ["notifications"],
     queryFn: async () => {
       const { data } = await notificationService.getAll();
+      // API returns { notifications: [...], total, unreadCount }
       return data.data;
     },
   });
@@ -34,8 +35,8 @@ export default function CustomerNotificationsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  const notifications: Notification[] = Array.isArray(data) ? data : [];
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const notifications: Notification[] = Array.isArray(data?.notifications) ? data.notifications : [];
+  const unreadCount = data?.unreadCount ?? notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="space-y-6">

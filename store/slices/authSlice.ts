@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import type { AuthState, LoginPayload, RegisterPayload } from "@/types";
-import { authService } from "@/services/auth.service";
+import type { AuthState, LoginPayload } from "@/types";
+import { authService, type RegisterPayload } from "@/services/auth.service";
 import { userService } from "@/services/user.service";
 import { setTokens, clearTokens } from "@/services/axios";
 
@@ -75,13 +75,9 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state) => { state.isLoading = false; })
       .addCase(register.pending, (state) => { state.isLoading = true; })
-      .addCase(register.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state) => {
+        // Register returns { userId, email } — no tokens yet, OTP verification needed
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.tokens.accessToken;
-        state.refreshToken = action.payload.tokens.refreshToken;
-        state.isAuthenticated = true;
-        setTokens(action.payload.tokens.accessToken, action.payload.tokens.refreshToken);
       })
       .addCase(register.rejected, (state) => { state.isLoading = false; })
       .addCase(loadUser.fulfilled, (state, action) => {

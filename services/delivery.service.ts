@@ -2,10 +2,8 @@ import api from "./axios";
 import type { ApiResponse, DeliveryBoy, Order, PaginatedResponse } from "@/types";
 
 export const deliveryService = {
-  onboard: (data: FormData) =>
-    api.post<ApiResponse<DeliveryBoy>>("/delivery/onboard", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    }),
+  onboard: (data: FormData | Record<string, unknown>) =>
+    api.post<ApiResponse<DeliveryBoy>>("/delivery/onboard", data),
 
   getProfile: () => api.get<ApiResponse<DeliveryBoy>>("/delivery/profile"),
 
@@ -13,19 +11,24 @@ export const deliveryService = {
 
   toggleAvailability: () => api.post("/delivery/toggle-availability"),
 
-  updateLocation: (lat: number, lng: number) =>
-    api.post("/delivery/location", { lat, lng }),
+  // API expects { latitude, longitude, orderId }
+  updateLocation: (latitude: number, longitude: number, orderId?: string) =>
+    api.post("/delivery/location", { latitude, longitude, orderId }),
 
-  getAssigned: () => api.get<ApiResponse<Order[]>>("/delivery/deliveries"),
+  getAssigned: (params?: { status?: string }) =>
+    api.get<ApiResponse<Order[]>>("/delivery/deliveries", { params }),
 
-  updateDeliveryStatus: (id: string, status: string, location?: { lat: number; lng: number }) =>
-    api.put(`/delivery/deliveries/${id}/status`, { status, location }),
+  // API expects { status, notes }
+  updateDeliveryStatus: (id: string, status: string, notes?: string) =>
+    api.put(`/delivery/deliveries/${id}/status`, { status, notes }),
 
   // Admin
   adminGetAll: (params?: { page?: number; status?: string }) =>
     api.get<ApiResponse<PaginatedResponse<DeliveryBoy>>>("/admin/delivery-boys", { params }),
 
-  adminApprove: (id: string) => api.patch(`/admin/delivery-boys/${id}/approve`),
-  adminReject: (id: string, reason: string) =>
-    api.patch(`/admin/delivery-boys/${id}/reject`, { reason }),
+  adminApprove: (id: string) =>
+    api.patch(`/admin/delivery-boys/${id}/approve`, { approved: true }),
+
+  adminReject: (id: string, reason?: string) =>
+    api.patch(`/admin/delivery-boys/${id}/approve`, { approved: false, reason }),
 };

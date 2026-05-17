@@ -3,7 +3,7 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
   LayoutDashboard, Package, ShoppingBag, BarChart3,
-  Wallet, Bell, Store,
+  Wallet, Bell, Store, Layers, Tag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -11,6 +11,8 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: "Analytics", href: "/dashboard/vendor/analytics" },
   { icon: ShoppingBag, label: "Orders", href: "/dashboard/vendor/orders" },
   { icon: Package, label: "Products", href: "/dashboard/vendor/products" },
+  { icon: Layers, label: "Stock", href: "/dashboard/vendor/stock" },
+  { icon: Tag, label: "Offers", href: "/dashboard/vendor/offers" },
   { icon: Wallet, label: "Earnings", href: "/dashboard/vendor/earnings" },
   { icon: Bell, label: "Notifications", href: "/dashboard/vendor/notifications" },
   { icon: Store, label: "My Store", href: "/dashboard/vendor/store" },

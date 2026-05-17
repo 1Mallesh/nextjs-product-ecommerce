@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: "Analytics", href: "/dashboard/admin/analytics" },
   { icon: ShoppingBag, label: "Orders", href: "/dashboard/admin/orders" },
   { icon: Package, label: "Products", href: "/dashboard/admin/products" },
+  { icon: BarChart3, label: "Revenue", href: "/dashboard/admin/analytics" },
   { icon: Grid3x3, label: "Categories", href: "/dashboard/admin/categories" },
   { icon: Users, label: "Users", href: "/dashboard/admin/users" },
   { icon: Store, label: "Vendors", href: "/dashboard/admin/vendors" },

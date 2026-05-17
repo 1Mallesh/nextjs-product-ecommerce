@@ -24,11 +24,11 @@ export default function DeliveryDashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["delivery-assigned"] });
       toast.success(`New order assigned: #${data?.orderNumber ?? "Order"}`);
     };
-    socket.on("delivery:assigned", onAssigned);
-    socket.on("order:assigned", onAssigned);
+    socket.on("notification", onAssigned);
+    socket.on("order-status-update", onAssigned);
     return () => {
-      socket.off("delivery:assigned", onAssigned);
-      socket.off("order:assigned", onAssigned);
+      socket.off("notification", onAssigned);
+      socket.off("order-status-update", onAssigned);
     };
   }, [socket, queryClient]);
 
