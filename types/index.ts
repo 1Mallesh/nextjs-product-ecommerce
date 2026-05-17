@@ -339,6 +339,101 @@ export interface ChartPoint {
   label?: string;
 }
 
+// ─── Financial Analytics ──────────────────────────────────────────────────────
+
+export type DateRange = "today" | "week" | "month" | "year";
+
+export interface FinancialSummary {
+  // Revenue
+  totalRevenue: number;
+  productRevenue: number;
+  deliveryRevenue: number;
+  // Tax
+  totalGST: number;
+  cgst: number;
+  sgst: number;
+  // Commissions & platform
+  platformCommission: number;
+  razorpayCharges: number;
+  netPlatformProfit: number;
+  // Payouts
+  vendorEarnings: number;
+  deliveryEarnings: number;
+  vendorPayoutPending: number;
+  deliveryPayoutPending: number;
+  // Orders
+  totalOrders: number;
+  pendingOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  // Refunds
+  refundAmount: number;
+  refundCount: number;
+  // Wallets
+  vendorWalletBalance: number;
+  deliveryWalletBalance: number;
+  // Growth
+  revenueGrowth?: number;
+  ordersGrowth?: number;
+}
+
+export interface OrderFinancialBreakdown {
+  orderId: string;
+  orderNumber: string;
+  createdAt: string;
+  customerName: string;
+  productAmount: number;
+  gstAmount: number;
+  gstRate: number;
+  deliveryCharge: number;
+  platformCommission: number;
+  commissionRate: number;
+  vendorEarnings: number;
+  deliveryBoyEarnings: number;
+  razorpayFee: number;
+  netPlatformProfit: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  orderStatus: string;
+}
+
+export interface VendorFinancial {
+  vendorId: string;
+  shopName: string;
+  totalRevenue: number;
+  totalOrders: number;
+  commissionPaid: number;
+  earnings: number;
+  pendingPayout: number;
+  walletBalance: number;
+}
+
+export interface DeliveryFinancial {
+  deliveryBoyId: string;
+  name: string;
+  totalDeliveries: number;
+  totalEarnings: number;
+  pendingPayout: number;
+}
+
+export interface FinancialChartPoint {
+  date: string;
+  revenue: number;
+  commission: number;
+  gst: number;
+  profit: number;
+  orders: number;
+}
+
+export interface FinancialAnalyticsResponse {
+  summary: FinancialSummary;
+  chart: FinancialChartPoint[];
+  topVendors: VendorFinancial[];
+  recentBreakdowns: OrderFinancialBreakdown[];
+  gstByMonth: { month: string; gst: number; cgst: number; sgst: number }[];
+  paymentMethodBreakdown: { method: string; count: number; amount: number }[];
+}
+
 // ─── API Response ─────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
