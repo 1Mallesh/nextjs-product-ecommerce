@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { SlidersHorizontal, X } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSocket } from "@/providers/SocketProvider";
 import type { Product, ProductFilter, PaginatedResponse } from "@/types";
 import { ITEMS_PER_PAGE } from "@/constants";
 
@@ -64,6 +65,8 @@ function normalizePaginated<T>(raw: unknown): PaginatedResponse<T> {
 export default function ProductsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { socket } = useSocket();
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [minPrice, setMinPrice] = useState<number | undefined>();
@@ -81,6 +84,19 @@ export default function ProductsPageClient() {
     search, categoryId, sortBy, page, limit: ITEMS_PER_PAGE,
     minPrice, maxPrice, rating: selectedRating, inStock: inStock || undefined,
   };
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    };
+    socket.on("product.approved", handler);
+    socket.on("product.rejected", handler);
+    return () => {
+      socket.off("product.approved", handler);
+      socket.off("product.rejected", handler);
+    };
+  }, [socket, queryClient]);
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", filters],

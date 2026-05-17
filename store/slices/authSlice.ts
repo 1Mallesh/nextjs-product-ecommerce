@@ -41,6 +41,16 @@ export const loadUser = createAsyncThunk("auth/loadUser", async (_, { rejectWith
   }
 });
 
+export const logoutUser = createAsyncThunk("auth/logoutUser", async (_, { rejectWithValue }) => {
+  try {
+    await authService.logout();
+    return true;
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: { message?: string } } };
+    return rejectWithValue(e.response?.data?.message || "Logout failed");
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -68,10 +78,10 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.accessToken = action.payload.tokens.accessToken;
-        state.refreshToken = action.payload.tokens.refreshToken;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
-        setTokens(action.payload.tokens.accessToken, action.payload.tokens.refreshToken);
+        setTokens(action.payload.accessToken, action.payload.refreshToken);
       })
       .addCase(login.rejected, (state) => { state.isLoading = false; })
       .addCase(register.pending, (state) => { state.isLoading = true; })
@@ -88,9 +98,16 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         clearTokens();
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+        clearTokens();
       });
   },
 });
 
-export const { setCredentials, logout, setLoading } = authSlice.actions;
+export const { setCredentials, setLoading } = authSlice.actions;
 export default authSlice.reducer;

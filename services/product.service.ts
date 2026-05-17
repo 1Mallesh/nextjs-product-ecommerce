@@ -47,8 +47,8 @@ export const productService = {
     api.get<ApiResponse<PaginatedResponse<Product>>>("/admin/products", { params }),
 
   adminApprove: (id: string) =>
-    api.patch(`/admin/products/${id}/approve`, { approved: true }),
+    api.patch(`/admin/products/${id}/approve`, { approvalStatus: 'APPROVED' }),
 
   adminReject: (id: string, reason: string) =>
-    api.patch(`/admin/products/${id}/approve`, { approved: false, reason }),
+    api.patch(`/admin/products/${id}/approve`, { approvalStatus: 'REJECTED', rejectionReason: reason }),
 };

@@ -91,7 +91,7 @@ export default function LoginPageClient() {
     setOtpLoading(true);
     try {
       const { data } = await authService.verifyOtp({ email: otpEmail, otp });
-      dispatch(setCredentials(data.data.tokens));
+      dispatch(setCredentials({ accessToken: data.data.accessToken, refreshToken: data.data.refreshToken }));
       toast.success("Login successful!");
       router.push(redirect);
     } catch {

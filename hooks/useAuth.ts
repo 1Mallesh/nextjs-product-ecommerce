@@ -1,5 +1,5 @@
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { logout } from "@/store/slices/authSlice";
+import { logoutUser } from "@/store/slices/authSlice";
 import { useRouter } from "next/navigation";
 import type { UserRole } from "@/types";
 
@@ -8,8 +8,8 @@ export function useAuth() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAppSelector((s) => s.auth);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
     router.push("/");
   };
 

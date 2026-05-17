@@ -89,6 +89,8 @@ export interface Product {
   tags: string[];
   weight?: number;
   deliveryTime?: string;
+  approvalStatus?: "PENDING" | "APPROVED" | "REJECTED";
+  isPublished?: boolean;
   createdAt: string;
   updatedAt: string;
 }

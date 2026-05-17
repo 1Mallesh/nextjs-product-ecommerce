@@ -8,7 +8,8 @@ import {
   Menu, X, Bell, LogOut, ChevronRight,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logout } from "@/store/slices/authSlice";
+import { logoutUser } from "@/store/slices/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,11 +34,13 @@ export default function DashboardLayout({ children, navItems, title }: Dashboard
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const { user } = useAppSelector((s) => s.auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    queryClient.clear();
     router.push("/");
   };
 

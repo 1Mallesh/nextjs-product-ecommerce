@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleCart } from "@/store/slices/uiSlice";
-import { logout } from "@/store/slices/authSlice";
+import { logoutUser } from "@/store/slices/authSlice";
+import { useQueryClient } from "@tanstack/react-query";
 import Logo from "./Logo";
 import SearchBar from "./SearchBar";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const NAV_LINKS = [
 export default function Header() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated } = useAppSelector((s) => s.auth);
   const cartItems = useAppSelector((s) => s.cart.items);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -46,8 +48,9 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    queryClient.clear();
     router.push("/");
   };
 

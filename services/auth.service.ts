@@ -11,13 +11,13 @@ export interface RegisterPayload {
 
 export const authService = {
   login: (payload: LoginPayload) =>
-    api.post<ApiResponse<{ user: User; tokens: AuthTokens }>>("/auth/login", payload),
+    api.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>("/auth/login", payload),
 
   register: (payload: RegisterPayload) =>
     api.post<ApiResponse<{ userId: string; email: string }>>("/auth/register", payload),
 
   verifyOtp: (data: { email: string; otp: string }) =>
-    api.post<ApiResponse<{ user: User; tokens: AuthTokens }>>("/auth/verify-otp", data),
+    api.post<ApiResponse<{ user: User; accessToken: string; refreshToken: string }>>("/auth/verify-otp", data),
 
   logout: () => api.post("/auth/logout"),
 
