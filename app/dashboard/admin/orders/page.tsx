@@ -21,8 +21,9 @@ export default function AdminOrdersPage() {
     queryKey: ["admin-orders", status, page],
     queryFn: async () => {
       const { data } = await orderService.adminGetAll({ status: status !== "all" ? status : undefined, page, limit: 20 });
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
   return (
@@ -57,7 +58,7 @@ export default function AdminOrdersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {data?.data?.map((order) => (
+                  {(data?.orders ?? data?.data ?? []).map((order: any) => (
                     <tr key={order.id} className="hover:bg-muted/30">
                       <td className="px-4 py-3 font-medium">#{order.orderNumber}</td>
                       <td className="px-4 py-3">
@@ -91,13 +92,13 @@ export default function AdminOrdersPage() {
             </div>
           </div>
 
-          {data && data.meta.totalPages > 1 && (
+          {(data?.meta?.totalPages ?? 1) > 1 && (
             <div className="flex justify-center gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
               <span className="text-sm text-muted-foreground flex items-center px-4">
-                Page {page} of {data.meta.totalPages}
+                Page {page} of {data?.meta?.totalPages ?? 1}
               </span>
-              <Button variant="outline" size="sm" disabled={!data.meta.hasNextPage} onClick={() => setPage((p) => p + 1)}>Next</Button>
+              <Button variant="outline" size="sm" disabled={!data?.meta?.hasNextPage} onClick={() => setPage((p) => p + 1)}>Next</Button>
             </div>
           )}
         </>

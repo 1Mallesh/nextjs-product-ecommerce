@@ -24,7 +24,7 @@ export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["admin-users", search, roleFilter, page],
     queryFn: async () => {
       const { data } = await adminService.getUsers({
@@ -32,8 +32,9 @@ export default function AdminUsersPage() {
         role: roleFilter === "ALL" ? undefined : roleFilter,
         page,
       });
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
   const toggleBlockMutation = useMutation({
@@ -44,7 +45,8 @@ export default function AdminUsersPage() {
     },
   });
 
-  const users: import("@/types").User[] = data?.data ?? [];
+  // data = { users: [...], meta: {...} }  (response.data.data unwrapped in queryFn)
+  const users: import("@/types").User[] = data?.users ?? data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   return (
@@ -78,6 +80,11 @@ export default function AdminUsersPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+        </div>
+      ) : isError ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <Users className="h-12 w-12 mx-auto mb-4 opacity-40 text-destructive" />
+          <p className="text-destructive">Failed to load users</p>
         </div>
       ) : !users.length ? (
         <div className="text-center py-16 text-muted-foreground">

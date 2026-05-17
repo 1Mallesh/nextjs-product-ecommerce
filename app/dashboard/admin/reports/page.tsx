@@ -11,7 +11,11 @@ export default function AdminReportsPage() {
     queryKey: ["admin-reports"],
     queryFn: async () => {
       const { data } = await adminService.getReports();
-      return data?.data ?? null;
+      // Backend may return stats directly in data.data, or nested under data.data.summary
+      const payload = data?.data as any;
+      if (!payload) return null;
+      // If stats are directly on the payload object, use it; otherwise unwrap one more level
+      return (payload.totalRevenue !== undefined ? payload : payload.summary ?? payload.data ?? payload) as any;
     },
   });
 

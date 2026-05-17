@@ -31,8 +31,9 @@ export default function VendorOrdersPage() {
         page,
         limit: 15,
       });
-      return data.data;
+      return data.data as any;
     },
+    staleTime: 0,
   });
 
   const updateMutation = useMutation({
@@ -45,7 +46,8 @@ export default function VendorOrdersPage() {
     onError: () => toast.error("Failed to update status"),
   });
 
-  const orders = data?.data ?? [];
+  // data = { orders: [...], meta: {...} }  (response.data.data unwrapped in queryFn)
+  const orders = data?.orders ?? data?.data ?? [];
   const totalPages = data?.meta?.totalPages ?? 1;
 
   return (
@@ -87,7 +89,7 @@ export default function VendorOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {orders.map((order) => (
+                {(orders as any[]).map((order) => (
                   <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 font-medium">#{order.orderNumber}</td>
                     <td className="px-4 py-3 text-muted-foreground">{order.customer?.name ?? "–"}</td>

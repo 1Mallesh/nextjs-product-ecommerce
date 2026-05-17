@@ -19,10 +19,9 @@ export default function AdminRefundsPage() {
     queryKey: ["admin-refund-orders"],
     queryFn: async () => {
       const { data } = await orderService.adminGetAll({ status: "DELIVERED", limit: 50 });
-      const raw = data?.data;
-      if (Array.isArray(raw)) return raw as Order[];
-      if (raw && typeof raw === "object" && "data" in raw) return (raw as { data: Order[] }).data;
-      return [] as Order[];
+      // Backend: { success, data: { orders: [...], meta: {...} } }
+      const payload = data?.data as any;
+      return (payload?.orders ?? payload?.data ?? (Array.isArray(payload) ? payload : [])) as Order[];
     },
   });
 

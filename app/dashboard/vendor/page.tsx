@@ -110,7 +110,8 @@ export default function VendorDashboardPage() {
     queryKey: ["vendor-orders-recent"],
     queryFn: async () => {
       const { data } = await orderService.vendorGetAll({ limit: 5 });
-      return data.data;
+      // Backend: { success, data: { orders: [...], meta: {...} } }
+      return data.data as any;
     },
     enabled: profile?.status === "APPROVED",
   });
@@ -228,10 +229,10 @@ export default function VendorDashboardPage() {
           </Button>
         </div>
         <div className="divide-y">
-          {!orders?.data?.length ? (
+          {!(orders?.orders ?? orders?.data)?.length ? (
             <div className="p-8 text-center text-muted-foreground text-sm">No orders yet</div>
           ) : (
-            orders.data.map((order) => (
+            (orders?.orders ?? orders?.data ?? []).map((order: any) => (
               <div key={order.id} className="p-4 flex items-center justify-between hover:bg-muted/30">
                 <div>
                   <p className="font-medium text-sm">#{order.orderNumber}</p>
