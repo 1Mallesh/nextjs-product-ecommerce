@@ -133,7 +133,7 @@ export default function AddressesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium block mb-1.5">Full Name *</label>
                   <Input {...register("fullName")} placeholder="As per ID" error={errors.fullName?.message} />
@@ -154,7 +154,7 @@ export default function AddressesPage() {
                 <Input {...register("addressLine2")} placeholder="Area, Landmark (optional)" />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-sm font-medium block mb-1.5">City *</label>
                   <Input {...register("city")} placeholder="City" error={errors.city?.message} />

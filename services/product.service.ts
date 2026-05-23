@@ -6,6 +6,9 @@ export const productService = {
   getAll: (filters?: ProductFilter) =>
     api.get<ApiResponse<PaginatedResponse<Product>>>("/products", { params: filters }),
 
+  getFilterOptions: () =>
+    api.get<ApiResponse<{ sortOptions: { value: string; label: string }[]; ratings: number[] }>>("/products/filter-options"),
+
   getById: (id: string) => api.get<ApiResponse<Product>>(`/products/${id}`),
 
   getFeatured: () => api.get<ApiResponse<any>>("/products/featured"),
@@ -13,6 +16,11 @@ export const productService = {
   getBelow50: () =>
     api.get<ApiResponse<PaginatedResponse<Product>>>("/products", {
       params: { maxPrice: 50, limit: 20 },
+    }),
+
+  getBelow100: () =>
+    api.get<ApiResponse<PaginatedResponse<Product>>>("/products", {
+      params: { maxPrice: 100, limit: 20 },
     }),
 
   getRelated: (productId: string) =>

@@ -288,7 +288,8 @@ export default function AdminDeliveryPage() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[750px]">
             <thead className="bg-muted/50">
               <tr>
                 {["Partner", "Contact", "Vehicle", "KYC Status", "Rating", "Deliveries", "Joined", "Actions"].map((h) => (
@@ -394,6 +395,7 @@ export default function AdminDeliveryPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

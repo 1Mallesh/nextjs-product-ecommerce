@@ -64,7 +64,7 @@ export default function ProductEditClient({ id }: { id: string }) {
   const onSubmit = async (data: ProductForm) => {
     setSubmitting(true);
     try {
-      const payload = {
+      const payload: Record<string, any> = {
         name: data.name,
         description: data.description,
         shortDescription: data.description.substring(0, 100),
@@ -72,12 +72,10 @@ export default function ProductEditClient({ id }: { id: string }) {
         sku: data.sku,
         price: Number(data.price),
         comparePrice: Number(data.comparePrice),
-        costPrice: Number(data.comparePrice) * 0.8,
         stock: Number(data.stock),
         weight: Number(data.weight || 0),
-        images: product?.images || ["https://placehold.co/600x600/png"],
-        tags: ["updated"],
       };
+      if (product?.images?.length) payload.images = product.images;
 
       await productService.update(id, payload);
       toast.success("Product updated!");
@@ -147,7 +145,7 @@ export default function ProductEditClient({ id }: { id: string }) {
         <Card>
           <CardHeader><CardTitle>Pricing & Inventory</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Price (₹) *</label>
                 <Input {...register("price", { required: true, valueAsNumber: true })} type="number" />
@@ -157,7 +155,7 @@ export default function ProductEditClient({ id }: { id: string }) {
                 <Input {...register("comparePrice", { required: true, valueAsNumber: true })} type="number" />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">SKU</label>
                 <Input {...register("sku")} />

@@ -9,7 +9,9 @@ import type { PaginatedResponse, Product } from "@/types";
 
 export const metadata: Metadata = {
   title: "All Products",
-  description: "Browse thousands of products from top vendors",
+  description: "Shop from thousands of products across electronics, fashion, groceries & more. Best prices, free delivery above ₹499. COD available.",
+  keywords: ["buy products online", "online shopping", "best deals India", "free delivery"],
+  openGraph: { title: "All Products – TOKOMORT", description: "Shop from thousands of products at the best prices.", type: "website" },
 };
 
 export default async function ProductsPage({

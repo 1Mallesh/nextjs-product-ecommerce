@@ -69,7 +69,7 @@ export default function CustomerOrdersPage() {
         <div className="space-y-3">
           {orders.map((order: any) => (
             <div key={order.id} className="bg-card border rounded-xl p-4 hover:border-brand/30 transition-colors">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm">#{order.orderNumber}</p>
@@ -94,9 +94,9 @@ export default function CustomerOrdersPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="flex sm:flex-col sm:items-end items-center justify-between sm:justify-start shrink-0 gap-2">
                   <p className="font-bold">{formatPrice(order.total)}</p>
-                  <div className="flex gap-2 mt-2 justify-end">
+                  <div className="flex gap-2 sm:mt-2">
                     <Button size="sm" variant="outline" asChild>
                       <Link href={`/orders/${order.id}/tracking`}>Track</Link>
                     </Button>

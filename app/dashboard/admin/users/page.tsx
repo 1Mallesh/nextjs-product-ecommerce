@@ -93,7 +93,8 @@ export default function AdminUsersPage() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[700px]">
             <thead className="bg-muted/50">
               <tr>
                 {["Name", "Email", "Mobile", "Role", "Status", "Joined", "Actions"].map((h) => (
@@ -145,6 +146,7 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

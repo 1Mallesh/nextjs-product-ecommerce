@@ -7,18 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { categoryService } from "@/services/category.service";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_ICONS: Record<string, string> = {
-  electronics: "📱",
-  fashion: "👗",
-  groceries: "🥦",
-  home: "🏠",
-  beauty: "💄",
-  sports: "⚽",
-  books: "📚",
-  toys: "🧸",
-  default: "🛍️",
-};
-
 export default function CategoryRow() {
   const { data, isLoading } = useQuery({
     queryKey: ["categories"],
@@ -54,14 +42,16 @@ export default function CategoryRow() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Link
-                  href={`/categories/${cat.slug}`}
+                  href={cat.slug ? `/categories/${cat.slug}` : "/categories"}
                   className="flex flex-col items-center gap-2 shrink-0 group"
                 >
                   <div className={cn(
                     "h-14 w-14 rounded-2xl flex items-center justify-center text-2xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-md",
                     "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20"
                   )}>
-                    {CATEGORY_ICONS[cat.slug] || CATEGORY_ICONS.default}
+                    {cat.image
+                      ? <img src={cat.image} alt={cat.name} className="h-8 w-8 object-contain" />
+                      : "🛍️"}
                   </div>
                   <span className="text-xs font-medium text-center max-w-[60px] leading-tight line-clamp-2">
                     {cat.name}

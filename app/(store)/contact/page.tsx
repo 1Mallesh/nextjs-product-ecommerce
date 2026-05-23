@@ -33,7 +33,7 @@ export default function ContactPage() {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Contact Us</h1>
         <p className="text-muted-foreground">We&apos;re here to help. Reach out anytime!</p>
       </div>
 

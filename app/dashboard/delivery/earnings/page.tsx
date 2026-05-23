@@ -135,7 +135,7 @@ export default function DeliveryEarningsPage() {
       </div>
 
       {/* How earnings are calculated */}
-      <div className="bg-muted/40 border rounded-xl p-4 text-sm grid grid-cols-3 gap-4 text-center">
+      <div className="bg-muted/40 border rounded-xl p-4 text-sm grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
         <div>
           <p className="text-muted-foreground text-xs mb-1">Your Share</p>
           <p className="text-2xl font-bold text-brand">60%</p>

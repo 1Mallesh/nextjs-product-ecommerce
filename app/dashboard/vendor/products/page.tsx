@@ -54,9 +54,9 @@ export default function VendorProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-bold">Products</h2>
-        <Button variant="brand" asChild>
+        <Button variant="brand" asChild className="w-full sm:w-auto">
           <Link href="/dashboard/vendor/products/new">
             <Plus className="h-4 w-4" />
             Add Product
@@ -96,7 +96,8 @@ export default function VendorProductsPage() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-muted/50">
               <tr>
                 {["Product", "SKU", "Price", "Stock", "Status", "Actions"].map((h) => (
@@ -156,6 +157,7 @@ export default function VendorProductsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

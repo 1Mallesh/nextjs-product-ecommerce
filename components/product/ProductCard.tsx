@@ -46,7 +46,7 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
       transition={{ duration: 0.2 }}
       className="product-card group relative bg-card rounded-xl border overflow-hidden"
     >
-      <Link href={`/products/${product.slug}`}>
+      <Link href={product.slug ? `/products/${product.slug}` : "/products"}>
         {/* Image */}
         <div className={cn("relative overflow-hidden bg-muted", compact ? "h-36" : "h-48 sm:h-56")}>
           <Image
@@ -70,9 +70,9 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
                 Featured
               </Badge>
             )}
-            {product.price < 50 && (
+            {product.price < 100 && (
               <Badge variant="success" className="text-[10px] px-1.5 py-0.5">
-                Under ₹50
+                Under ₹100
               </Badge>
             )}
           </div>

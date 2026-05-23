@@ -58,7 +58,7 @@ export default function AdminRefundsPage() {
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (
-            <div key={order.id} className="bg-card border rounded-xl p-4 flex items-center justify-between gap-4">
+            <div key={order.id} className="bg-card border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium text-sm">Order #{order.orderNumber ?? order.id.slice(0, 8)}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -66,7 +66,7 @@ export default function AdminRefundsPage() {
                 </p>
                 <p className="text-xs text-muted-foreground">{order.items?.length ?? 0} items</p>
               </div>
-              <div className="text-right shrink-0">
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0">
                 <p className="font-bold text-brand">{formatPrice(order.total)}</p>
                 <Button
                   size="sm"

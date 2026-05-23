@@ -77,9 +77,9 @@ export default function AdminVendorsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-bold">Vendors</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {["ALL", "PENDING", "APPROVED", "REJECTED", "SUSPENDED"].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
@@ -103,7 +103,8 @@ export default function AdminVendorsPage() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-muted/50">
               <tr>
                 {["Shop", "Owner", "GST", "Status", "Applied", "Actions"].map((h) => (
@@ -151,6 +152,7 @@ export default function AdminVendorsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

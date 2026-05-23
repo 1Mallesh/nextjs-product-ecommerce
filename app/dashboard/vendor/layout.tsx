@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import RoleGuard from "@/components/auth/RoleGuard";
 import {
   LayoutDashboard, Package, ShoppingBag, BarChart3,
-  Wallet, Bell, Store, Layers, Tag,
+  Wallet, Bell, Store, Layers, Tag, Grid3x3,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: "Analytics", href: "/dashboard/vendor/analytics" },
   { icon: ShoppingBag, label: "Orders", href: "/dashboard/vendor/orders" },
   { icon: Package, label: "Products", href: "/dashboard/vendor/products" },
+  { icon: Grid3x3, label: "Categories", href: "/dashboard/vendor/categories" },
   { icon: Layers, label: "Stock", href: "/dashboard/vendor/stock" },
   { icon: Tag, label: "Offers", href: "/dashboard/vendor/offers" },
   { icon: Wallet, label: "Earnings", href: "/dashboard/vendor/earnings" },

@@ -119,7 +119,7 @@ export default function VendorOnboardingPage() {
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={step1Form.handleSubmit(onStep1)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-1.5 block">Shop Name *</label>
                         <Input {...step1Form.register("shopName")} placeholder="Your shop name" error={step1Form.formState.errors.shopName?.message} />
@@ -187,7 +187,7 @@ export default function VendorOnboardingPage() {
                       <label className="text-sm font-medium mb-1.5 block">Aadhaar Number *</label>
                       <Input {...step2Form.register("aadhaarNumber")} placeholder="12-digit Aadhaar" maxLength={12} error={step2Form.formState.errors.aadhaarNumber?.message} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-1.5 block flex items-center gap-1.5"><Upload className="h-3.5 w-3.5" /> Aadhaar Front</label>
                         <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange("aadhaarFront", e)}
@@ -266,7 +266,7 @@ export default function VendorOnboardingPage() {
                       <label className="text-sm font-medium mb-1.5 block">Address Line 1 *</label>
                       <Input {...step4Form.register("line1")} placeholder="Shop number, street name" error={step4Form.formState.errors.line1?.message} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-1.5 block">City *</label>
                         <Input {...step4Form.register("city")} placeholder="City" error={step4Form.formState.errors.city?.message} />

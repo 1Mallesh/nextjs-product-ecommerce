@@ -6,17 +6,13 @@ import { motion } from "framer-motion";
 import { categoryService } from "@/services/category.service";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CATEGORY_EMOJIS: Record<string, string> = {
-  electronics: "📱", fashion: "👗", groceries: "🥦", home: "🏠",
-  beauty: "💄", sports: "⚽", books: "📚", toys: "🧸", default: "🛍️",
-};
-
 export default function CategoriesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await categoryService.getAll();
-      return data.data;
+      const payload = data.data as any;
+      return Array.isArray(payload) ? payload : (payload?.categories ?? payload?.data ?? []);
     },
   });
 
@@ -31,10 +27,12 @@ export default function CategoriesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {data?.map((cat, i) => (
             <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-              <Link href={`/categories/${cat.slug}`}
+              <Link href={cat.slug ? `/categories/${cat.slug}` : "/categories"}
                 className="flex flex-col items-center justify-center gap-3 h-36 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 rounded-2xl border hover:border-brand hover:shadow-md transition-all group">
                 <span className="text-4xl group-hover:scale-110 transition-transform">
-                  {CATEGORY_EMOJIS[cat.slug] || CATEGORY_EMOJIS.default}
+                  {cat.image ? (
+                    <img src={cat.image} alt={cat.name} className="h-10 w-10 object-contain" />
+                  ) : "🛍️"}
                 </span>
                 <div className="text-center">
                   <p className="font-semibold text-sm">{cat.name}</p>

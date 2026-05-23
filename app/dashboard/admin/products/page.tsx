@@ -70,9 +70,9 @@ export default function AdminProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h2 className="text-xl font-bold">Products</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {["pending", "approved", "rejected", "all"].map((s) => (
             <button
               key={s}
@@ -103,7 +103,8 @@ export default function AdminProductsPage() {
         </div>
       ) : (
         <div className="bg-card border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[650px]">
             <thead className="bg-muted/50">
               <tr>
                 {["Product", "Vendor", "Price", "Stock", "Status", "Created", "Actions"].map((h) => (
@@ -171,6 +172,7 @@ export default function AdminProductsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

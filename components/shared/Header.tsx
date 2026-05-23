@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { getInitials } from "@/lib/utils";
 import { ROUTES } from "@/constants";
 import ThemeToggle from "./ThemeToggle";
+import { useQuery } from "@tanstack/react-query";
+import { contentService } from "@/services/content.service";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -41,6 +43,15 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: siteSettings } = useQuery({
+    queryKey: ["site-settings"],
+    queryFn: async () => {
+      const { data } = await contentService.getSiteSettings();
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -74,9 +85,11 @@ export default function Header() {
         }`}
       >
         {/* Top bar */}
-        <div className="bg-brand text-white text-xs py-1.5 px-4 text-center hidden md:block">
-          Free delivery on orders above ₹499 | Use code <strong>WELCOME50</strong> for 50% off first order
-        </div>
+        {siteSettings?.topBarMessage && (
+          <div className="bg-brand text-white text-xs py-1.5 px-4 text-center hidden md:block">
+            {siteSettings.topBarMessage}
+          </div>
+        )}
 
         {/* Main header */}
         <div className="container mx-auto px-4">

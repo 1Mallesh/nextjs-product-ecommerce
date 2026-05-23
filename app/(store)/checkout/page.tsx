@@ -266,13 +266,13 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input {...register("fullName")} placeholder="Full name *" error={errors.fullName?.message} />
                     <Input {...register("phone")} placeholder="Mobile number *" maxLength={10} error={errors.phone?.message} />
                   </div>
                   <Input {...register("addressLine1")} placeholder="Flat/House No., Street *" error={errors.addressLine1?.message} />
                   <Input {...register("addressLine2")} placeholder="Area, Landmark (optional)" />
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <Input {...register("city")} placeholder="City *" error={errors.city?.message} />
                     <Input {...register("pincode")} placeholder="Pincode *" maxLength={6} error={errors.pincode?.message} />
                     <select {...register("state")} className="h-10 rounded-md border border-input bg-background px-3 text-sm">

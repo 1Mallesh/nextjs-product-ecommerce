@@ -100,13 +100,13 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold">All Orders</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Manage customer orders, track payments, and dispatch shipments</p>
         </div>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>

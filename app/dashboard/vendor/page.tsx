@@ -209,13 +209,13 @@ export default function VendorDashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="flex gap-3">
-        <Button variant="brand" asChild>
+      <div className="flex flex-wrap gap-3">
+        <Button variant="brand" asChild className="flex-1 sm:flex-none">
           <Link href="/dashboard/vendor/products/new">
             <Plus className="h-4 w-4" /> Add Product
           </Link>
         </Button>
-        <Button variant="outline" asChild>
+        <Button variant="outline" asChild className="flex-1 sm:flex-none">
           <Link href="/dashboard/vendor/orders">View Orders</Link>
         </Button>
       </div>

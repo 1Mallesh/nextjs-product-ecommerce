@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Upload, ArrowLeft } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Trash2, Upload, ArrowLeft, Clock } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
 import { Button } from "@/components/ui/button";
@@ -31,13 +31,28 @@ export default function NewProductPage() {
   const queryClient = useQueryClient();
   const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatDesc, setNewCatDesc] = useState("");
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data } = await categoryService.getAll();
-      return data.data;
+      const payload = data.data as any;
+      return Array.isArray(payload) ? payload : (payload?.categories ?? payload?.data ?? []);
     },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: () =>
+      categoryService.create({ name: newCatName.trim(), description: newCatDesc.trim() || undefined }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Category submitted for approval! You can select it once admin approves.");
+      setNewCatName(""); setNewCatDesc(""); setShowNewCategory(false);
+    },
+    onError: () => toast.error("Failed to create category"),
   });
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<ProductForm>({
@@ -104,17 +119,62 @@ export default function NewProductPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Category *</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium">Category *</label>
+                <button
+                  type="button"
+                  onClick={() => setShowNewCategory((v) => !v)}
+                  className="text-xs text-brand hover:underline flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  {showNewCategory ? "Cancel" : "Create new category"}
+                </button>
+              </div>
+
               <Select onValueChange={(v) => setValue("categoryId", v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.filter((cat: any) => cat.id && cat.id !== "").map((cat) => (
+                  {(categories ?? []).filter((cat: any) => cat.id).map((cat: any) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              {showNewCategory && (
+                <div className="mt-3 border rounded-xl p-3 space-y-2 bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground">New category request</p>
+                  <Input
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="Category name *"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={newCatDesc}
+                    onChange={(e) => setNewCatDesc(e.target.value)}
+                    placeholder="Description (optional)"
+                    className="h-8 text-sm"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="brand"
+                      className="h-7 text-xs"
+                      disabled={!newCatName.trim() || createCategoryMutation.isPending}
+                      onClick={() => createCategoryMutation.mutate()}
+                    >
+                      {createCategoryMutation.isPending ? "Submitting..." : "Submit for Approval"}
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                    <Clock className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>New categories go live after admin approval. You can assign it to your product once approved.</span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -123,7 +183,7 @@ export default function NewProductPage() {
         <Card>
           <CardHeader><CardTitle>Pricing & Inventory</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Selling Price (₹) *</label>
                 <Input {...register("price", { required: true, valueAsNumber: true })} type="number" placeholder="0.00" />
@@ -133,7 +193,7 @@ export default function NewProductPage() {
                 <Input {...register("comparePrice", { required: true, valueAsNumber: true })} type="number" placeholder="0.00" />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1.5 block">SKU *</label>
                 <Input {...register("sku", { required: true })} placeholder="SKU-001" />
@@ -205,7 +265,7 @@ export default function NewProductPage() {
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Input {...register(`variants.${i}.name`)} placeholder="Variant name (e.g. Size)" />
                     <Input {...register(`variants.${i}.value`)} placeholder="Value (e.g. XL)" />
                     <Input {...register(`variants.${i}.price`, { valueAsNumber: true })} type="number" placeholder="Price (₹)" />

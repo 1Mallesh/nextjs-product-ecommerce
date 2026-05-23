@@ -94,7 +94,7 @@ export default function OrdersPage() {
                   </Button>
                   {order.status === "DELIVERED" && (
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/products/${order.items[0]?.product?.slug}#reviews`}>Review</Link>
+                      <Link href={order.items[0]?.product?.slug ? `/products/${order.items[0].product.slug}#reviews` : "/products"}>Review</Link>
                     </Button>
                   )}
                 </div>

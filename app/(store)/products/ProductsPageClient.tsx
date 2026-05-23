@@ -16,21 +16,15 @@ import { useSocket } from "@/providers/SocketProvider";
 import type { Product, ProductFilter, PaginatedResponse } from "@/types";
 import { ITEMS_PER_PAGE } from "@/constants";
 
-const PRICE_RANGES = [
-  { label: "Under ₹100", min: 0, max: 100 },
-  { label: "₹100 – ₹500", min: 100, max: 500 },
-  { label: "₹500 – ₹1,000", min: 500, max: 1000 },
-  { label: "₹1,000 – ₹5,000", min: 1000, max: 5000 },
-  { label: "Above ₹5,000", min: 5000, max: undefined },
-];
-
-const SORT_OPTIONS = [
+const DEFAULT_SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
   { value: "popular", label: "Most Popular" },
   { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
   { value: "rating", label: "Best Rating" },
 ];
+
+const DEFAULT_RATINGS = [4, 3, 2, 1];
 
 /**
  * Normalize any paginated API response into PaginatedResponse<T>.
@@ -79,10 +73,6 @@ export default function ProductsPageClient({
   const { socket } = useSocket();
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [minPrice, setMinPrice] = useState<number | undefined>();
-  const [maxPrice, setMaxPrice] = useState<number | undefined>(
-    searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined
-  );
   const [selectedRating, setSelectedRating] = useState<number | undefined>();
   const [inStock, setInStock] = useState(false);
 
@@ -92,7 +82,7 @@ export default function ProductsPageClient({
 
   const filters: ProductFilter = {
     search, categoryId, sortBy, page, limit: ITEMS_PER_PAGE,
-    minPrice, maxPrice, rating: selectedRating, inStock: inStock || undefined,
+    rating: selectedRating, inStock: inStock || undefined,
   };
 
   useEffect(() => {
@@ -110,7 +100,7 @@ export default function ProductsPageClient({
   // Use server-prefetched data as initialData only for the default unfiltered view
   const isDefaultView =
     !search && !categoryId && sortBy === "newest" && page === 1 &&
-    !minPrice && !maxPrice && !selectedRating && !inStock;
+    !selectedRating && !inStock;
 
   const { data, isLoading } = useQuery<PaginatedResponse<Product>>({
     queryKey: ["products", filters],
@@ -132,6 +122,22 @@ export default function ProductsPageClient({
     },
   });
 
+  const { data: filterOptions } = useQuery({
+    queryKey: ["product-filter-options"],
+    queryFn: async () => {
+      try {
+        const { data } = await productService.getFilterOptions();
+        return data.data;
+      } catch {
+        return { sortOptions: DEFAULT_SORT_OPTIONS, ratings: DEFAULT_RATINGS };
+      }
+    },
+    staleTime: Infinity,
+  });
+
+  const sortOptions = filterOptions?.sortOptions ?? DEFAULT_SORT_OPTIONS;
+  const ratingOptions = filterOptions?.ratings ?? DEFAULT_RATINGS;
+
   const updateSort = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("sortBy", value);
@@ -139,8 +145,6 @@ export default function ProductsPageClient({
   };
 
   const clearFilters = () => {
-    setMinPrice(undefined);
-    setMaxPrice(undefined);
     setSelectedRating(undefined);
     setInStock(false);
     setPage(1);
@@ -149,9 +153,6 @@ export default function ProductsPageClient({
 
   const activeFilters: string[] = [
     ...(search ? [`"${search}"`] : []),
-    ...(minPrice !== undefined || maxPrice !== undefined
-      ? [`₹${minPrice ?? 0}–${maxPrice !== undefined ? `₹${maxPrice}` : "∞"}`]
-      : []),
     ...(selectedRating ? [`${selectedRating}★+`] : []),
     ...(inStock ? ["In Stock"] : []),
   ];
@@ -159,34 +160,9 @@ export default function ProductsPageClient({
   const FilterPanel = () => (
     <div className="space-y-6">
       <div>
-        <h4 className="font-semibold mb-3">Price Range</h4>
-        <div className="space-y-1">
-          {PRICE_RANGES.map((range) => (
-            <button
-              key={range.label}
-              onClick={() => { setMinPrice(range.min); setMaxPrice(range.max); setPage(1); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                minPrice === range.min && maxPrice === range.max
-                  ? "bg-brand/10 text-brand font-medium"
-                  : "hover:bg-muted"
-              }`}
-            >
-              {range.label}
-            </button>
-          ))}
-          <button
-            onClick={() => { setMinPrice(undefined); setMaxPrice(undefined); }}
-            className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted"
-          >
-            Clear price filter
-          </button>
-        </div>
-      </div>
-
-      <div>
         <h4 className="font-semibold mb-3">Rating</h4>
         <div className="space-y-1">
-          {[4, 3, 2, 1].map((r) => (
+          {ratingOptions.map((r) => (
             <button
               key={r}
               onClick={() => setSelectedRating(selectedRating === r ? undefined : r)}
@@ -259,7 +235,7 @@ export default function ProductsPageClient({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {SORT_OPTIONS.map((opt) => (
+              {sortOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>

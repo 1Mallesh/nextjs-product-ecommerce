@@ -138,6 +138,16 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Prevent horizontal scroll on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Touch scroll momentum */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Custom scrollbar for desktop */
 @media (min-width: 768px) {
   ::-webkit-scrollbar {

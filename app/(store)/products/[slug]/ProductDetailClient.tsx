@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Product360Viewer from "@/components/product/Product360Viewer";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -37,6 +38,7 @@ export default function ProductDetailClient({ slug }: Props) {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+  const [view360, setView360] = useState(false);
   const [pincode, setPincode] = useState("");
   const [pincodeResult, setPincodeResult] = useState<{ available: boolean; days?: string } | null>(null);
   const [checkingPincode, setCheckingPincode] = useState(false);
@@ -122,7 +124,7 @@ export default function ProductDetailClient({ slug }: Props) {
         <ChevronRight className="h-3.5 w-3.5" />
         {product.category && (
           <>
-            <Link href={`/categories/${product.category.slug}`} className="hover:text-brand">
+            <Link href={product.category.slug ? `/categories/${product.category.slug}` : "/categories"} className="hover:text-brand">
               {product.category.name}
             </Link>
             <ChevronRight className="h-3.5 w-3.5" />
@@ -134,59 +136,98 @@ export default function ProductDetailClient({ slug }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {/* Images */}
         <div>
-          <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted mb-3">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeImage}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0"
+          {/* View toggle */}
+          {images.length >= 4 && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setView360(false)}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all ${
+                  !view360 ? "bg-brand text-white border-brand" : "border-border hover:border-brand/50"
+                }`}
               >
-                <Image
-                  src={images[activeImage] || "/placeholder.jpg"}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </motion.div>
-            </AnimatePresence>
-            {discount >= 10 && (
-              <div className="absolute top-3 left-3">
-                <Badge variant="discount" className="text-sm px-2 py-1">
-                  {discount}% OFF
-                </Badge>
-              </div>
-            )}
-            <button
-              onClick={() => {
-                dispatch(toggleWishlist(product));
-                toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
-              }}
-              className={`absolute top-3 right-3 h-9 w-9 rounded-full flex items-center justify-center transition-all ${
-                isWishlisted ? "bg-red-500 text-white" : "bg-white/90 text-gray-700 hover:bg-red-50"
-              }`}
-            >
-              <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
-            </button>
-          </div>
+                Photos
+              </button>
+              <button
+                onClick={() => setView360(true)}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium border transition-all flex items-center justify-center gap-2 ${
+                  view360 ? "bg-brand text-white border-brand" : "border-border hover:border-brand/50"
+                }`}
+              >
+                <RotateCcw className="h-4 w-4" />
+                360° View
+              </button>
+            </div>
+          )}
 
-          {/* Thumbnails */}
-          {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-              {images.map((img, i) => (
+          {view360 && images.length >= 4 ? (
+            <Product360Viewer images={images} alt={product.name} />
+          ) : (
+            <>
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-muted mb-3">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeImage}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0"
+                  >
+                    <Image
+                      src={images[activeImage] || "/placeholder.jpg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </motion.div>
+                </AnimatePresence>
+                {discount >= 10 && (
+                  <div className="absolute top-3 left-3">
+                    <Badge variant="discount" className="text-sm px-2 py-1">
+                      {discount}% OFF
+                    </Badge>
+                  </div>
+                )}
+                {/* 360 hint badge when enough images */}
+                {images.length >= 4 && (
+                  <button
+                    onClick={() => setView360(true)}
+                    className="absolute bottom-3 left-3 bg-black/70 text-white text-xs font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-sm hover:bg-black/90 transition-colors"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    360° View
+                  </button>
+                )}
                 <button
-                  key={i}
-                  onClick={() => setActiveImage(i)}
-                  className={`relative h-16 w-16 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
-                    activeImage === i ? "border-brand" : "border-transparent opacity-60"
+                  onClick={() => {
+                    dispatch(toggleWishlist(product));
+                    toast.success(isWishlisted ? "Removed from wishlist" : "Added to wishlist");
+                  }}
+                  className={`absolute top-3 right-3 h-9 w-9 rounded-full flex items-center justify-center transition-all ${
+                    isWishlisted ? "bg-red-500 text-white" : "bg-white/90 text-gray-700 hover:bg-red-50"
                   }`}
                 >
-                  <Image src={img} alt="" fill className="object-cover" />
+                  <Heart className={`h-4 w-4 ${isWishlisted ? "fill-current" : ""}`} />
                 </button>
-              ))}
-            </div>
+              </div>
+
+              {/* Thumbnails */}
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                  {images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImage(i)}
+                      className={`relative h-16 w-16 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
+                        activeImage === i ? "border-brand" : "border-transparent opacity-60"
+                      }`}
+                    >
+                      <Image src={img} alt="" fill className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
 
